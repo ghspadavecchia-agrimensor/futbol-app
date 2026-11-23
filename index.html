@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fútbol App - Torneos y Posiciones</title>
+    <style>
+        :root { --azul: #0288d1; --amarillo: #fbc02d; --fondo: #f4f4f9; --texto: #333; }
+        body { font-family: Arial, sans-serif; background-color: var(--fondo); color: var(--texto); padding: 20px; margin: 0; }
+        .card { background: white; padding: 20px; border-radius: 8px; max-width: 900px; margin: 0 auto 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2, h3, h4 { text-align: center; margin-top: 0; }
+        label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 2px; display: block; }
+        input, select, button { padding: 10px; margin-bottom: 10px; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #45a049; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-danger { background-color: #f44336; }
+        .btn-danger:hover { background-color: #d32f2f; }
+        .btn-warning { background-color: #ff9800; color: white; }
+        .btn-warning:hover { background-color: #f57c00; }
+        .btn-info { background-color: var(--azul); color: white; }
+        .btn-info:hover { background-color: #0277bd; }
+        .btn-secondary { background-color: #607d8b; color: white; }
+        .btn-secondary:hover { background-color: #455a64; }
+        .hidden { display: none !important; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+        .form-group { display: flex; flex-direction: column; }
+        .cancha { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .equipo { flex: 1; min-width: 250px; padding: 15px; border-radius: 8px; }
+        .equipo-azul { background-color: #e0f7fa; border: 2px solid var(--azul); }
+        .equipo-amarillo { background-color: #fffde7; border: 2px solid var(--amarillo); }
+        .jugador-item { background: #eee; padding: 8px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .admin-panel { background-color: #fff3e0; border: 1px solid #ffb74d; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .panel-invitado { background-color: #e3f2fd; border: 1px solid #90caf9; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .panel-ayuda { background-color: #f1f8e9; border: 1px solid #aed581; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; line-height: 1.5; }
+        .panel-ayuda h4 { text-align: left; margin-bottom: 8px; color: #33691e; }
+        .panel-ayuda ul { margin: 6px 0 12px 18px; padding: 0; }
+        .panel-ayuda code { background: #e8f5e9; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+        .fecha-item { background: #fafafa; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .error-box { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px; }
+        .role-badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: bold; vertical-align: middle; margin-left: 6px; }
+        .role-admin { background-color: #ffe0b2; color: #e65100; }
+        .role-jugador { background-color: #b3e5fc; color: #01579b; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+
+        /* Tablas de Posiciones */
+        .table-wrap { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; min-width: 420px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 10px; background: #e0e0e0; color: #333; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        .tab-btn.active { background: var(--azul); color: white; }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .card { padding: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PANTALLA DE CARGA INICIAL -->
+<div id="loading-panel" class="card" style="text-align: center;">
+    <p style="margin: 10px 0; color: #666;">Verificando sesión...</p>
+</div>
+
+<!-- PANTALLA DE LOGIN -->
+<div id="login-panel" class="card hidden">
+    <h2>⚽ Ingreso a Fútbol App</h2>
+    <div id="login-error" class="error-box hidden"></div>
+    <input type="password" id="input-pass" placeholder="Ingresá la contraseña" autocomplete="current-password">
+    <button id="btn-login">Entrar</button>
+</div>
+
+<!-- APLICACIÓN PRINCIPAL -->
+<div id="app-panel" class="card hidden">
+    <div class="header-bar">
+        <div>
+            <h2 style="margin: 0; display: inline;">Gestión de Fútbol</h2>
+            <span id="badge-rol" class="role-badge"></span>
+        </div>
+        <div class="header-actions">
+            <button id="btn-toggle-ayuda" class="btn-secondary" style="width: auto; margin-bottom: 0;">❓ Ayuda</button>
+            <button id="btn-logout" class="btn-danger" style="width: auto; margin-bottom: 0;">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <!-- APARTADO DE AYUDA / MANUAL DE USUARIO -->
+    <div id="panel-ayuda" class="panel-ayuda hidden">
+        <h4>📖 Manual de Uso Rápido</h4>
+        <ul>
+            <li><b>Armar Equipos:</b> Seleccioná la fecha programada en el menú desplegable, marcá los jugadores presentes (podés sumar invitados temporales que no alteran el historial), elegí <i>Hándicap</i> o <i>Aleatorio</i> y tocá <b>Generar y Guardar Equipos</b>.</li>
+            <li><b>Reglas de Hándicap:</b> Equilibra el promedio histórico (<code>Puntos / PJ</code>) y diferencia de gol. Si hay un solo arquero, se compensa al equipo rival con jugadores de campo de mayor nivel.</li>
+            <li><b>Armado Aleatorio:</b> Por reglas del grupo, solo permite sortear una vez cada 2 minutos.</li>
+            <li><b>Suplentes:</b> Todos los convocados del equipo (titulares y suplentes) suman los mismos puntos y diferencia de gol.</li>
+        </ul>
+        <div id="ayuda-admin-extra" class="hidden">
+            <h4>🛠️ Guía para Administradores</h4>
+            <ul>
+                <li><b>Torneos y Fechas:</b> Creá un torneo (definí puntos por G/E/P) y luego agregá fechas al lote desde el calendario. Podés editar nombres, suspender/reactivar fechas o cargar resultados.</li>
+                <li><b>Corregir Resultados:</b> Si volvés a cargar el resultado de una fecha ya jugada, el sistema ajusta automáticamente la diferencia de puntos y goles sin duplicar partidos jugados.</li>
+                <li><b>Carga Masiva CSV:</b> El archivo debe tener encabezados en este orden exacto:<br>
+                    <code>Nombre,EsArquero,Puntos,DifGol,Partidos</code> (usando <code>SI</code> o <code>NO</code> en <code>EsArquero</code>).</li>
+                <li><b>Baja Lógica:</b> Al desactivar un jugador deja de aparecer para nuevos sorteos pero conserva su historial en las tablas.</li>
+                <li><b>Contraseñas:</b> Se gestionan directamente con Firebase Authentication (mínimo 6 caracteres) sin guardar claves en texto plano en la base de datos.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- PANEL DE ADMINISTRADOR -->
+    <div id="admin-tools" class="admin-panel hidden">
+        <h3>🛠️ Panel de Administrador</h3>
+
+        <!-- GESTIÓN DE CONTRASEÑAS (FIREBASE AUTH) -->
+        <h4>Gestión de Contraseñas de Acceso</h4>
+        <div class="grid">
+            <div class="form-group">
+                <label>Contraseña Actual de Admin</label>
+                <input type="password" id="pass-actual-admin" placeholder="Clave actual de Admin" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Nueva Contraseña de Admin (mín. 6)</label>
+                <input type="password" id="pass-nueva-admin" placeholder="Nueva clave de Admin" autocomplete="new-password">
+            </div>
+        </div>
+        <button id="btn-cambiar-pass-admin" class="btn-warning">Actualizar Contraseña de Admin</button>
+
+        <div class="grid" style="margin-top: 8px;">
+            <div class="form-group">
+                <label>Contraseña Actual de Jugador</label>
+                <input type="password" id="pass-actual-jugador" placeholder="Clave actual de Jugador" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Nueva Contraseña de Jugador (mín. 6)</label>
+                <input type="password" id="pass-nueva-jugador" placeholder="Nueva clave de Jugador" autocomplete="new-password">
+            </div>
+        </div>
+        <button id="btn-cambiar-pass-jugador" class="btn-warning">Actualizar Contraseña de Jugador</button>
+
+        <hr style="border: 0; border-top: 1px solid #ffcc80; margin: 15px 0;">
+
+        <div id="banner-torneo-activo" style="background: #ffe0b2; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center; font-weight: bold; color: #e65100;">
+            Torneo Activo: Cargando...
+        </div>
+
+        <h4>Crear Nuevo Torneo y Puntuación</h4>
+        <div class="grid">
+            <div class="form-group">
+                <label>Nombre del Torneo</label>
+                <input type="text" id="torneo-nombre" placeholder="Ej: Clausura 2026" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label>Puntos por Ganado</label>
+                <input type="number" id="pts-ganado" value="3" step="any">
+            </div>
+            <div class="form-group">
+                <label>Puntos por Empate</label>
+                <input type="number" id="pts-empate" value="1" step="any">
+            </div>
+            <div class="form-group">
+                <label>Puntos por Pérdida</label>
+                <input type="number" id="pts-perdido" value="0" step="any">
+            </div>
+        </div>
+        <button id="btn-crear-torneo" class="btn-warning">Crear Torneo</button>
+
+        <hr style="border: 0; border-top: 1px solid #ffcc80; margin: 15px 0;">
+
+        <h4>Crear Múltiples Fechas</h4>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <input type="date" id="input-multi-fecha" style="margin-bottom:0; flex:2;">
+            <button id="btn-agregar-a-lote" class="btn-info" style="margin-bottom:0; flex:1;">+ Agregar a la lista</button>
+        </div>
+        <div id="lista-lote-preview" style="background: white; padding: 10px; border-radius: 4px; border: 1px dashed #ccc; margin-bottom: 10px; min-height: 40px; font-size: 13px; color: #666;">
+            No hay fechas agregadas en este lote.
+        </div>
+        <button id="btn-guardar-lote" style="background-color: #2e7d32;">Guardar Lote de Fechas en el Torneo</button>
+
+        <h4 style="margin-top: 20px;">Fechas Registradas y Carga de Resultados</h4>
+        <div id="lista-fechas-admin" style="margin-top: 10px;"></div>
+
+        <hr style="border: 0; border-top: 1px solid #ffcc80; margin: 15px 0;">
+
+        <h4>Carga Manual de Jugador al Padrón</h4>
+        <div class="grid">
+            <div class="form-group">
+                <label>Nombre del Jugador</label>
+                <input type="text" id="nuevo-nombre" placeholder="Ej: Juan" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label>Posición</label>
+                <select id="nuevo-arquero">
+                    <option value="false">Jugador de campo</option>
+                    <option value="true">Arquero</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Puntos Totales</label>
+                <input type="number" id="nuevo-pts" value="0" step="any">
+            </div>
+            <div class="form-group">
+                <label>Diferencia de Gol</label>
+                <input type="number" id="nuevo-dif" value="0" step="any">
+            </div>
+            <div class="form-group">
+                <label>Partidos Jugados</label>
+                <input type="number" id="nuevo-partidos" value="0" min="0" step="1">
+            </div>
+        </div>
+        <button id="btn-add-jugador">Guardar Nuevo Jugador</button>
+
+        <hr style="border: 0; border-top: 1px solid #ffcc80; margin: 15px 0;">
+
+        <h4>Carga Masiva (Historial CSV)</h4>
+        <input type="file" id="archivo-csv" accept=".csv" style="background: white;">
+        <button id="btn-cargar-csv">Subir y Procesar CSV</button>
+    </div>
+
+    <!-- ÁREA DE ARMADO DE EQUIPOS -->
+    <div class="panel-invitado">
+        <h4 style="margin-top: 0; text-align: left;">➕ Agregar Invitado Temporal</h4>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="nombre-invitado" placeholder="Nombre del invitado" style="flex: 2; margin-bottom: 0;" maxlength="60">
+            <select id="arquero-invitado" style="flex: 1; margin-bottom: 0;">
+                <option value="false">Campo</option>
+                <option value="true">Arquero</option>
+            </select>
+            <button id="btn-add-invitado" style="flex: 1; margin-bottom: 0; background-color: var(--azul);">Sumar Invitado</button>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label><b>Seleccionar Fecha para este Partido:</b></label>
+        <select id="select-fecha-partido">
+            <option value="">-- Seleccioná una fecha del torneo --</option>
+        </select>
+    </div>
+
+    <p style="font-weight: bold;">Seleccioná los presentes para armar los equipos:</p>
+    <div id="lista-jugadores" class="grid" style="margin-bottom:20px;"></div>
+
+    <div class="grid">
+        <select id="metodo-armado">
+            <option value="handicap">Armado por Hándicap</option>
+            <option value="aleatorio">Armado Aleatorio</option>
+        </select>
+        <button id="btn-armar">Generar y Guardar Equipos</button>
+    </div>
+
+    <div class="cancha">
+        <div class="equipo equipo-azul" id="resultado-azul">
+            <h3 style="color: var(--azul);">Equipo Azul</h3>
+            <div class="lista"></div>
+        </div>
+        <div class="equipo equipo-amarillo" id="resultado-amarillo">
+            <h3 style="color: var(--amarillo);">Equipo Amarillo</h3>
+            <div class="lista"></div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN DE TABLAS Y ESTADÍSTICAS -->
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+    <h3>📊 Tablas de Posiciones y Estadísticas</h3>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="torneo">Torneo Actual</button>
+        <button class="tab-btn" data-tab="historico">Histórico General</button>
+    </div>
+
+    <div id="tab-torneo">
+        <h4 id="titulo-tabla-torneo">Tabla de Posiciones (Torneo Activo)</h4>
+        <div id="contenedor-tabla-torneo">Cargando posiciones...</div>
+    </div>
+
+    <div id="tab-historico" class="hidden">
+        <h4>Ranking Histórico General</h4>
+        <div id="contenedor-tabla-historico">Cargando historial...</div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+        getAuth,
+        signInWithEmailAndPassword,
+        onAuthStateChanged,
+        signOut,
+        updatePassword,
+        EmailAuthProvider,
+        reauthenticateWithCredential
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        doc,
+        getDoc,
+        addDoc,
+        updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAi-fCdZ7DT_jrIHVtg91-2zStT-05YOJk",
+        authDomain: "futbolok-50712.firebaseapp.com",
+        projectId: "futbolok-50712",
+        storageBucket: "futbolok-50712.firebasestorage.app",
+        messagingSenderId: "618898130288",
+        appId: "1:618898130288:web:77f37817d8d7fbe0ebfbb5"
+    };
+
+    const EMAIL_JUGADOR = "jugador@futbolok.app";
+    const EMAIL_ADMIN = "admin@futbolok.app";
+    const ADMIN_UID = "zSI5h9wg2tTgw6EueD4OkbJNvYm1";
+    const JUGADOR_UID = "0mb2fPdcpgUhGhdPMVoH4Eq4fw43";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let padronJugadores = [];
+    let invitadosTemporales = [];
+    let ultimoArmadoAleatorio = 0;
+    let torneoActivoId = null;
+    let nombreTorneoActivo = "";
+    let datosTorneoActivo = null;
+    let fechasLoteTemporal = [];
+    let equipoAzulActual = [];
+    let equipoAmarilloActual = [];
+    let rolActual = 'jugador';
+
+    const loadingPanel = document.getElementById('loading-panel');
+    const loginPanel = document.getElementById('login-panel');
+    const loginError = document.getElementById('login-error');
+    const appPanel = document.getElementById('app-panel');
+    const adminTools = document.getElementById('admin-tools');
+    const ayudaAdminExtra = document.getElementById('ayuda-admin-extra');
+    const badgeRol = document.getElementById('badge-rol');
+    const listaJugadoresDiv = document.getElementById('lista-jugadores');
+
+    function escapeHtml(str) {
+        return String(str ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function mostrarErrorLogin(msg) {
+        loginError.textContent = msg;
+        loginError.classList.remove('hidden');
+    }
+
+    function ocultarErrorLogin() {
+        loginError.textContent = "";
+        loginError.classList.add('hidden');
+    }
+
+    function traducirErrorFirebase(err) {
+        const code = err?.code || "";
+        if (code === "permission-denied") return "No tenés permisos para realizar esta acción en Firebase.";
+        if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/invalid-login-credentials") {
+            return "Contraseña incorrecta.";
+        }
+        if (code === "auth/too-many-requests") {
+            return "Demasiados intentos fallidos. Esperá unos minutos e intentá nuevamente.";
+        }
+        if (code === "auth/network-request-failed") {
+            return "Error de conexión. Verificá tu acceso a internet.";
+        }
+        if (code === "auth/weak-password") {
+            return "La contraseña es demasiado débil (mínimo 6 caracteres).";
+        }
+        return err?.message || "Ocurrió un error inesperado.";
+    }
+
+    // 1. AUTENTICACIÓN CON FIREBASE AUTH
+    onAuthStateChanged(auth, async (user) => {
+        loadingPanel.classList.add('hidden');
+
+        if (!user) {
+            appPanel.classList.add('hidden');
+            adminTools.classList.add('hidden');
+            loginPanel.classList.remove('hidden');
+            return;
+        }
+
+        if (user.uid === ADMIN_UID) {
+            iniciarSesion('admin');
+        } else if (user.uid === JUGADOR_UID) {
+            iniciarSesion('jugador');
+        } else {
+            await signOut(auth);
+            mostrarErrorLogin("Cuenta no autorizada para esta aplicación.");
+        }
+    });
+
+    async function verificarLogin() {
+        const passIngresada = document.getElementById('input-pass').value;
+        ocultarErrorLogin();
+        if (!passIngresada) {
+            return mostrarErrorLogin("Ingresá una contraseña.");
+        }
+
+        const btn = document.getElementById('btn-login');
+        btn.disabled = true;
+        btn.textContent = "Ingresando...";
+
+        try {
+            try {
+                await signInWithEmailAndPassword(auth, EMAIL_JUGADOR, passIngresada);
+            } catch (errJugador) {
+                const code = errJugador?.code || "";
+                if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/invalid-login-credentials") {
+                    await signInWithEmailAndPassword(auth, EMAIL_ADMIN, passIngresada);
+                } else {
+                    throw errJugador;
+                }
+            }
+            document.getElementById('input-pass').value = "";
+        } catch (err) {
+            console.error("Error de login:", err);
+            mostrarErrorLogin(traducirErrorFirebase(err));
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Entrar";
+        }
+    }
+
+    function iniciarSesion(rol) {
+        rolActual = rol;
+        ocultarErrorLogin();
+        loginPanel.classList.add('hidden');
+        appPanel.classList.remove('hidden');
+
+        if (rol === 'admin') {
+            adminTools.classList.remove('hidden');
+            ayudaAdminExtra.classList.remove('hidden');
+            badgeRol.textContent = "Administrador";
+            badgeRol.className = "role-badge role-admin";
+        } else {
+            adminTools.classList.add('hidden');
+            ayudaAdminExtra.classList.add('hidden');
+            badgeRol.textContent = "Jugador";
+            badgeRol.className = "role-badge role-jugador";
+        }
+
+        cargarDatosGenerales();
+    }
+
+    async function actualizarPassAdmin() {
+        const actual = document.getElementById('pass-actual-admin').value;
+        const nueva = document.getElementById('pass-nueva-admin').value.trim();
+
+        if (!actual || !nueva) return alert("Completá la contraseña actual y la nueva de Admin.");
+        if (nueva.length < 6) return alert("La nueva contraseña debe tener al menos 6 caracteres.");
+
+        const btn = document.getElementById('btn-cambiar-pass-admin');
+        btn.disabled = true;
+        btn.textContent = "Actualizando...";
+
+        try {
+            const cred = EmailAuthProvider.credential(EMAIL_ADMIN, actual);
+            await reauthenticateWithCredential(auth.currentUser, cred);
+            await updatePassword(auth.currentUser, nueva);
+            document.getElementById('pass-actual-admin').value = "";
+            document.getElementById('pass-nueva-admin').value = "";
+            alert("¡Contraseña de Administrador actualizada con éxito!");
+        } catch (err) {
+            console.error(err);
+            alert("No se pudo actualizar la contraseña de Admin: " + traducirErrorFirebase(err));
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Actualizar Contraseña de Admin";
+        }
+    }
+
+    async function actualizarPassJugador() {
+        const actual = document.getElementById('pass-actual-jugador').value;
+        const nueva = document.getElementById('pass-nueva-jugador').value.trim();
+
+        if (!actual || !nueva) return alert("Completá la contraseña actual y la nueva de Jugador.");
+        if (nueva.length < 6) return alert("La nueva contraseña debe tener al menos 6 caracteres.");
+
+        const btn = document.getElementById('btn-cambiar-pass-jugador');
+        btn.disabled = true;
+        btn.textContent = "Actualizando...";
+
+        let secondaryApp = null;
+        try {
+            secondaryApp = initializeApp(firebaseConfig, "jugadorPassUpdater-" + Date.now());
+            const secondaryAuth = getAuth(secondaryApp);
+            const userCred = await signInWithEmailAndPassword(secondaryAuth, EMAIL_JUGADOR, actual);
+            await updatePassword(userCred.user, nueva);
+            await signOut(secondaryAuth);
+            document.getElementById('pass-actual-jugador').value = "";
+            document.getElementById('pass-nueva-jugador').value = "";
+            alert("¡Contraseña de Jugador actualizada con éxito!");
+        } catch (err) {
+            console.error(err);
+            alert("No se pudo actualizar la contraseña de Jugador: " + traducirErrorFirebase(err));
+        } finally {
+            if (secondaryApp) {
+                try { await deleteApp(secondaryApp); } catch (_) {}
+            }
+            btn.disabled = false;
+            btn.textContent = "Actualizar Contraseña de Jugador";
+        }
+    }
+
+    async function cargarDatosGenerales() {
+        try {
+            await cargarTorneoActivo();
+            await cargarJugadores();
+            await calcularTablasPosiciones();
+        } catch (err) {
+            console.error("Error cargando datos:", err);
+            alert("Error al cargar datos de Firebase: " + traducirErrorFirebase(err));
+        }
+    }
+
+    // 2. TORNEOS Y FECHAS
+    async function crearTorneo() {
+        const nombre = document.getElementById('torneo-nombre').value.trim();
+        const ptsGanado = parseFloat(document.getElementById('pts-ganado').value);
+        const ptsEmpate = parseFloat(document.getElementById('pts-empate').value);
+        const ptsPerdido = parseFloat(document.getElementById('pts-perdido').value);
+
+        if (!nombre) return alert("El nombre del torneo es obligatorio.");
+        if (isNaN(ptsGanado) || isNaN(ptsEmpate) || isNaN(ptsPerdido)) {
+            return alert("Los puntos deben ser números válidos.");
+        }
+
+        try {
+            const querySnapshot = await getDocs(collection(db, "torneos"));
+            for (const d of querySnapshot.docs) {
+                if (d.data().estado === "activo") {
+                    await updateDoc(doc(db, "torneos", d.id), { estado: "finalizado" });
+                }
+            }
+
+            const docRef = await addDoc(collection(db, "torneos"), {
+                nombre,
+                ptsGanado,
+                ptsEmpate,
+                ptsPerdido,
+                estado: "activo"
+            });
+
+            torneoActivoId = docRef.id;
+            nombreTorneoActivo = nombre;
+            datosTorneoActivo = { nombre, ptsGanado, ptsEmpate, ptsPerdido, estado: "activo" };
+            actualizarBannerTorneo();
+            alert("¡Torneo creado con éxito y establecido como activo!");
+            document.getElementById('torneo-nombre').value = '';
+            await cargarFechasAdmin();
+            await cargarFechasSelectPartido();
+            await calcularTablasPosiciones();
+        } catch (err) {
+            console.error(err);
+            alert("Error al crear el torneo: " + traducirErrorFirebase(err));
+        }
+    }
+
+    async function cargarTorneoActivo() {
+        const querySnapshot = await getDocs(collection(db, "torneos"));
+        torneoActivoId = null;
+        nombreTorneoActivo = "Ninguno (Creá uno abajo)";
+        datosTorneoActivo = null;
+
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.estado === "activo") {
+                torneoActivoId = docSnap.id;
+                nombreTorneoActivo = data.nombre;
+                datosTorneoActivo = data;
+            }
+        });
+
+        actualizarBannerTorneo();
+        if (torneoActivoId) {
+            if (!adminTools.classList.contains('hidden')) {
+                await cargarFechasAdmin();
+            }
+            await cargarFechasSelectPartido();
+        } else {
+            document.getElementById('select-fecha-partido').innerHTML = '<option value="">-- No hay torneo activo --</option>';
+            const listaAdmin = document.getElementById('lista-fechas-admin');
+            if (listaAdmin) listaAdmin.innerHTML = "<p style='font-size:12px; color:#666;'>Creá un torneo activo para gestionar fechas.</p>";
+        }
+    }
+
+    function actualizarBannerTorneo() {
+        const banner = document.getElementById('banner-torneo-activo');
+        if (banner) {
+            banner.innerText = `Torneo Activo: ${nombreTorneoActivo}`;
+        }
+        const tituloTorneoTab = document.getElementById('titulo-tabla-torneo');
+        if (tituloTorneoTab) {
+            tituloTorneoTab.innerText = `Tabla de Posiciones (${nombreTorneoActivo})`;
+        }
+    }
+
+    function agregarFechaAlLote() {
+        const inputFecha = document.getElementById('input-multi-fecha').value;
+        if (!inputFecha) return alert("Seleccioná una fecha del calendario.");
+
+        if (fechasLoteTemporal.includes(inputFecha)) {
+            return alert("Esa fecha ya está agregada en el lote.");
+        }
+
+        fechasLoteTemporal.push(inputFecha);
+        fechasLoteTemporal.sort();
+        actualizarPreviewLote();
+        document.getElementById('input-multi-fecha').value = '';
+    }
+
+    function actualizarPreviewLote() {
+        const container = document.getElementById('lista-lote-preview');
+        if (fechasLoteTemporal.length === 0) {
+            container.innerHTML = "No hay fechas agregadas en este lote.";
+            return;
+        }
+
+        container.innerHTML = fechasLoteTemporal.map((f, index) => {
+            const [yyyy, mm, dd] = f.split('-');
+            const fechaFormateada = `${dd}/${mm}/${yyyy}`;
+            return `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <span><b>Fecha ${index + 1}</b> - ${escapeHtml(fechaFormateada)}</span>
+                <button data-quitar-fecha="${escapeHtml(f)}" style="background:#f44336; padding:2px 6px; width:auto; font-size:11px; margin:0;">Quitar</button>
+            </div>`;
+        }).join('');
+
+        container.querySelectorAll('[data-quitar-fecha]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const fechaStr = btn.getAttribute('data-quitar-fecha');
+                fechasLoteTemporal = fechasLoteTemporal.filter(f => f !== fechaStr);
+                actualizarPreviewLote();
+            });
+        });
+    }
+
+    async function guardarLoteFechas() {
+        if (!torneoActivoId) return alert("Primero debés crear un torneo activo.");
+        if (fechasLoteTemporal.length === 0) return alert("Agregá al menos una fecha al lote.");
+
+        try {
+            const querySnapshot = await getDocs(collection(db, "fechas"));
+            let countExistentes = 0;
+            querySnapshot.forEach((docSnap) => {
+                if (docSnap.data().idTorneo === torneoActivoId) countExistentes++;
+            });
+
+            const promesas = [];
+            fechasLoteTemporal.forEach((f, idx) => {
+                const numeroFecha = countExistentes + idx + 1;
+                const [yyyy, mm, dd] = f.split('-');
+                const fechaFormateada = `${dd}/${mm}/${yyyy}`;
+                const nombreGenerado = `Fecha ${numeroFecha} - ${fechaFormateada}`;
+
+                promesas.push(
+                    addDoc(collection(db, "fechas"), {
+                        idTorneo: torneoActivoId,
+                        fechaCalendario: f,
+                        nombrePartido: nombreGenerado,
+                        numeroOrden: numeroFecha,
+                        estado: "programada",
+                        golesAzul: null,
+                        golesAmarillo: null,
+                        jugadoresAzul: [],
+                        jugadoresAmarillo: []
+                    })
+                );
+            });
+
+            await Promise.all(promesas);
+            fechasLoteTemporal = [];
+            actualizarPreviewLote();
+            await cargarFechasAdmin();
+            await cargarFechasSelectPartido();
+            alert("¡Fechas guardadas con éxito!");
+        } catch (err) {
+            console.error(err);
+            alert("Error al guardar fechas: " + traducirErrorFirebase(err));
+        }
+    }
+
+    async function cargarFechasAdmin() {
+        if (!torneoActivoId) return;
+        const contenedor = document.getElementById('lista-fechas-admin');
+        contenedor.innerHTML = "Cargando fechas...";
+
+        const querySnapshot = await getDocs(collection(db, "fechas"));
+        const fechasList = [];
+        querySnapshot.forEach((docSnap) => {
+            const f = docSnap.data();
+            if (f.idTorneo === torneoActivoId) {
+                fechasList.push({ id: docSnap.id, ...f });
+            }
+        });
+
+        fechasList.sort((a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || ""));
+
+        contenedor.innerHTML = '';
+        if (fechasList.length === 0) {
+            contenedor.innerHTML = "<p style='font-size:12px; color:#666;'>No hay fechas cargadas en este torneo.</p>";
+            return;
+        }
+
+        fechasList.forEach((f) => {
+            const estadoTexto = f.estado === 'jugada' ? `✅ Jugado (${f.golesAzul}-${f.golesAmarillo})` : `(${f.estado})`;
+            const div = document.createElement('div');
+            div.className = 'fecha-item';
+
+            const infoDiv = document.createElement('div');
+            infoDiv.style.flex = '2';
+            infoDiv.innerHTML = `<small style="color:#666;">📅 ${escapeHtml(f.fechaCalendario || 'Sin fecha')}</small><br><b>${escapeHtml(f.nombrePartido)}</b> <small>${escapeHtml(estadoTexto)}</small>`;
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.style.cssText = 'display: flex; gap: 5px; flex-wrap: wrap;';
+
+            const btnRes = document.createElement('button');
+            btnRes.className = 'btn-warning';
+            btnRes.style.cssText = 'padding: 5px 8px; width:auto; margin:0; font-size:12px;';
+            btnRes.textContent = f.estado === 'jugada' ? 'Corregir Resultado' : 'Cargar Resultado';
+            btnRes.addEventListener('click', () => abrirCargarResultado(f.id, f.nombrePartido));
+
+            const btnEdit = document.createElement('button');
+            btnEdit.className = 'btn-info';
+            btnEdit.style.cssText = 'padding: 5px 8px; width:auto; margin:0; font-size:12px;';
+            btnEdit.textContent = 'Editar';
+            btnEdit.addEventListener('click', () => editarNombreFecha(f.id, f.nombrePartido));
+
+            const btnEstado = document.createElement('button');
+            const esSuspendida = f.estado === 'suspendida';
+            if (!esSuspendida) btnEstado.className = 'btn-danger';
+            btnEstado.style.cssText = 'padding: 5px 8px; width:auto; margin:0; font-size:12px;';
+            btnEstado.textContent = esSuspendida ? 'Reactivar' : 'Suspender';
+            btnEstado.addEventListener('click', () => cambiarEstadoFecha(f.id, esSuspendida ? 'programada' : 'suspendida'));
+
+            actionsDiv.append(btnRes, btnEdit, btnEstado);
+            div.append(infoDiv, actionsDiv);
+            contenedor.appendChild(div);
+        });
+    }
+
+    async function cargarFechasSelectPartido() {
+        if (!torneoActivoId) return;
+        const select = document.getElementById('select-fecha-partido');
+        const querySnapshot = await getDocs(collection(db, "fechas"));
+
+        const disponibles = [];
+        querySnapshot.forEach((docSnap) => {
+            const f = docSnap.data();
+            const puedeUsarse = rolActual === 'admin'
+                ? (f.estado !== 'suspendida')
+                : (f.estado === 'programada');
+            if (f.idTorneo === torneoActivoId && puedeUsarse) {
+                disponibles.push({ id: docSnap.id, ...f });
+            }
+        });
+
+        disponibles.sort((a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || ""));
+
+        let opciones = '<option value="">-- Seleccioná una fecha del torneo --</option>';
+        disponibles.forEach((f) => {
+            const tag = f.estado === 'jugada' ? ' (Jugada)' : '';
+            opciones += `<option value="${escapeHtml(f.id)}">${escapeHtml(f.nombrePartido + tag)}</option>`;
+        });
+        select.innerHTML = opciones;
+    }
+
+    function calcularPuntosEquipo(golesPropios, golesRivales, torneo) {
+        if (golesPropios > golesRivales) return torneo.ptsGanado;
+        if (golesPropios < golesRivales) return torneo.ptsPerdido;
+        return torneo.ptsEmpate;
+    }
+
+    async function abrirCargarResultado(idFecha, nombreFecha) {
+        try {
+            const docRef = doc(db, "fechas", idFecha);
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists()) return alert("Fecha no encontrada.");
+            const fechaData = docSnap.data();
+
+            if (!fechaData.jugadoresAzul || fechaData.jugadoresAzul.length === 0 || !fechaData.jugadoresAmarillo || fechaData.jugadoresAmarillo.length === 0) {
+                return alert("Esta fecha aún no tiene equipos generados y guardados. Seleccioná la fecha abajo, armá los equipos y hacé clic en 'Generar y Guardar Equipos'.");
+            }
+
+            const yaJugada = fechaData.estado === "jugada" &&
+                typeof fechaData.golesAzul === "number" &&
+                typeof fechaData.golesAmarillo === "number";
+
+            if (yaJugada) {
+                const confirmar = confirm(
+                    `Esta fecha ya tiene resultado cargado (${fechaData.golesAzul} - ${fechaData.golesAmarillo}).\n` +
+                    `¿Querés corregirlo? Se ajustarán los puntos y diferencia de gol sin duplicar partidos jugados.`
+                );
+                if (!confirmar) return;
+            }
+
+            const gAzulStr = prompt(`Cargar goles para [${nombreFecha}]\nGoles EQUIPO AZUL:`, fechaData.golesAzul ?? "");
+            if (gAzulStr === null) return;
+            const gAmarilloStr = prompt(`Cargar goles para [${nombreFecha}]\nGoles EQUIPO AMARILLO:`, fechaData.golesAmarillo ?? "");
+            if (gAmarilloStr === null) return;
+
+            const gAzul = parseInt(gAzulStr, 10);
+            const gAmarillo = parseInt(gAmarilloStr, 10);
+
+            if (isNaN(gAzul) || isNaN(gAmarillo) || gAzul < 0 || gAmarillo < 0 || gAzul > 100 || gAmarillo > 100) {
+                return alert("Los goles deben ser números enteros entre 0 y 100.");
+            }
+
+            await updateDoc(docRef, {
+                golesAzul: gAzul,
+                golesAmarillo: gAmarillo,
+                estado: "jugada"
+            });
+
+            const ptsAzulNuevo = calcularPuntosEquipo(gAzul, gAmarillo, datosTorneoActivo);
+            const ptsAmarilloNuevo = calcularPuntosEquipo(gAmarillo, gAzul, datosTorneoActivo);
+            const difAzulNueva = gAzul - gAmarillo;
+            const difAmarilloNueva = gAmarillo - gAzul;
+
+            let deltaPtsAzul = ptsAzulNuevo;
+            let deltaPtsAmarillo = ptsAmarilloNuevo;
+            let deltaDifAzul = difAzulNueva;
+            let deltaDifAmarillo = difAmarilloNueva;
+            let deltaPartidos = 1;
+
+            if (yaJugada) {
+                const ptsAzulViejo = calcularPuntosEquipo(fechaData.golesAzul, fechaData.golesAmarillo, datosTorneoActivo);
+                const ptsAmarilloViejo = calcularPuntosEquipo(fechaData.golesAmarillo, fechaData.golesAzul, datosTorneoActivo);
+                const difAzulVieja = fechaData.golesAzul - fechaData.golesAmarillo;
+                const difAmarilloVieja = fechaData.golesAmarillo - fechaData.golesAzul;
+
+                deltaPtsAzul = ptsAzulNuevo - ptsAzulViejo;
+                deltaPtsAmarillo = ptsAmarilloNuevo - ptsAmarilloViejo;
+                deltaDifAzul = difAzulNueva - difAzulVieja;
+                deltaDifAmarillo = difAmarilloNueva - difAmarilloVieja;
+                deltaPartidos = 0;
+            }
+
+            const promesasJugadores = [];
+
+            fechaData.jugadoresAzul.forEach(idJ => {
+                const jugadorObj = padronJugadores.find(j => j.id === idJ);
+                if (jugadorObj && !idJ.startsWith('invitado-')) {
+                    promesasJugadores.push(
+                        updateDoc(doc(db, "jugadores", idJ), {
+                            puntosHistoricos: (jugadorObj.puntosHistoricos || 0) + deltaPtsAzul,
+                            golesDiferenciaHistorico: (jugadorObj.golesDiferenciaHistorico || 0) + deltaDifAzul,
+                            partidosJugados: Math.max(0, Math.round((jugadorObj.partidosJugados || 0) + deltaPartidos))
+                        })
+                    );
+                }
+            });
+
+            fechaData.jugadoresAmarillo.forEach(idJ => {
+                const jugadorObj = padronJugadores.find(j => j.id === idJ);
+                if (jugadorObj && !idJ.startsWith('invitado-')) {
+                    promesasJugadores.push(
+                        updateDoc(doc(db, "jugadores", idJ), {
+                            puntosHistoricos: (jugadorObj.puntosHistoricos || 0) + deltaPtsAmarillo,
+                            golesDiferenciaHistorico: (jugadorObj.golesDiferenciaHistorico || 0) + deltaDifAmarillo,
+                            partidosJugados: Math.max(0, Math.round((jugadorObj.partidosJugados || 0) + deltaPartidos))
+                        })
+                    );
+                }
+            });
+
+            await Promise.all(promesasJugadores);
+            alert(yaJugada ? "¡Resultado corregido y estadísticas ajustadas con éxito!" : "¡Resultado guardado y estadísticas actualizadas con éxito!");
+            await cargarFechasAdmin();
+            await cargarFechasSelectPartido();
+            await cargarJugadores();
+            await calcularTablasPosiciones();
+        } catch (err) {
+            console.error(err);
+            alert("Error al cargar el resultado: " + traducirErrorFirebase(err));
+        }
+    }
+
+    async function cambiarEstadoFecha(idFecha, nuevoEstado) {
+        try {
+            await updateDoc(doc(db, "fechas", idFecha), { estado: nuevoEstado });
+            await cargarFechasAdmin();
+            await cargarFechasSelectPartido();
+        } catch (err) {
+            console.error(err);
+            alert("Error al cambiar el estado de la fecha: " + traducirErrorFirebase(err));
+        }
+    }
+
+    async function editarNombreFecha(idFecha, nombreActual) {
+        const nuevoNombre = prompt("Modificá el nombre o motivo del partido:", nombreActual);
+        if (nuevoNombre && nuevoNombre.trim() !== "") {
+            try {
+                await updateDoc(doc(db, "fechas", idFecha), { nombrePartido: nuevoNombre.trim().slice(0, 150) });
+                await cargarFechasAdmin();
+                await cargarFechasSelectPartido();
+            } catch (err) {
+                console.error(err);
+                alert("Error al editar el nombre de la fecha: " + traducirErrorFirebase(err));
+            }
+        }
+    }
+
+    // 3. JUGADORES Y PADRÓN
+    async function cargarJugadores() {
+        const querySnapshot = await getDocs(collection(db, "jugadores"));
+        padronJugadores = [];
+
+        querySnapshot.forEach((docSnap) => {
+            padronJugadores.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        renderizarPadron();
+    }
+
+    function obtenerTodosLosJugadores() {
+        return [...padronJugadores, ...invitadosTemporales];
+    }
+
+    function renderizarPadron() {
+        const seleccionadosPrevios = new Set(
+            Array.from(listaJugadoresDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value)
+        );
+        listaJugadoresDiv.innerHTML = '';
+
+        const todos = obtenerTodosLosJugadores();
+        const disponibles = todos.filter(j => rolActual === 'admin' || j.activo !== false);
+
+        if (disponibles.length === 0) {
+            listaJugadoresDiv.innerHTML = "<p style='font-size: 12px; color: #666;'>No hay jugadores disponibles.</p>";
+            return;
+        }
+
+        disponibles.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+        disponibles.forEach(jugador => {
+            const prom = jugador.partidosJugados > 0 ? (jugador.puntosHistoricos / jugador.partidosJugados).toFixed(1) : "0.0";
+            const arqueroTag = jugador.esArquero ? ' 🧤' : ' ⚽';
+            const inactivoTag = jugador.activo === false ? ' 🔴 [Inactivo]' : '';
+            const esInvitado = jugador.id.startsWith('invitado-');
+
+            const div = document.createElement('div');
+            div.className = 'jugador-item';
+            if (jugador.activo === false) {
+                div.style.backgroundColor = '#ffebee';
+            } else if (esInvitado) {
+                div.style.backgroundColor = '#e3f2fd';
+            }
+
+            const leftDiv = document.createElement('div');
+            leftDiv.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `chk-${jugador.id}`;
+            checkbox.value = jugador.id;
+            checkbox.style.cssText = 'width: auto; margin: 0;';
+            checkbox.checked = seleccionadosPrevios.has(jugador.id);
+
+            const label = document.createElement('label');
+            label.htmlFor = `chk-${jugador.id}`;
+            label.style.cssText = 'font-size: 14px; color:#333; display:inline; margin:0; cursor:pointer;';
+            label.innerHTML = `${escapeHtml(jugador.nombre)}${arqueroTag}${inactivoTag}<br><span style="font-size: 11px; color: #666; font-weight:normal;">Prom: ${prom} | DG: ${jugador.golesDiferenciaHistorico || 0}</span>`;
+
+            leftDiv.append(checkbox, label);
+
+            const rightDiv = document.createElement('div');
+            if (rolActual === 'admin' && !esInvitado) {
+                const nuevoEstadoBool = jugador.activo === false;
+                const btnEstado = document.createElement('button');
+                btnEstado.style.cssText = `background:${nuevoEstadoBool ? '#4CAF50' : '#f44336'}; padding:4px 8px; width:auto; font-size:11px; margin:0;`;
+                btnEstado.textContent = nuevoEstadoBool ? 'Activar' : 'Desactivar';
+                btnEstado.addEventListener('click', () => toggleActivoJugador(jugador.id, nuevoEstadoBool));
+                rightDiv.appendChild(btnEstado);
+            } else if (esInvitado) {
+                const btnQuitar = document.createElement('button');
+                btnQuitar.style.cssText = 'background:#78909c; padding:4px 8px; width:auto; font-size:11px; margin:0;';
+                btnQuitar.textContent = 'Quitar';
+                btnQuitar.addEventListener('click', () => {
+                    invitadosTemporales = invitadosTemporales.filter(inv => inv.id !== jugador.id);
+                    renderizarPadron();
+                });
+                rightDiv.appendChild(btnQuitar);
+            }
+
+            div.append(leftDiv, rightDiv);
+            listaJugadoresDiv.appendChild(div);
+        });
+    }
+
+    async function toggleActivoJugador(idJugador, estadoDeseado) {
+        try {
+            await updateDoc(doc(db, "jugadores", idJugador), {
+                activo: estadoDeseado
+            });
+            alert(`Jugador ${estadoDeseado ? 'activado' : 'desactivado'} con éxito.`);
+            await cargarJugadores();
+            await calcularTablasPosiciones();
+        } catch (err) {
+            console.error(err);
+            alert("Error al cambiar estado del jugador: " + traducirErrorFirebase(err));
+        }
+    }
+
+    function agregarInvitado() {
+        const nombre = document.getElementById('nombre-invitado').value.trim();
+        const esArquero = document.getElementById('arquero-invitado').value === 'true';
+        if (!nombre) return alert("Ingresá el nombre del invitado.");
+
+        const idTemp = 'invitado-' + Date.now();
+        invitadosTemporales.push({
+            id: idTemp,
+            nombre: nombre + " (Invitado)",
+            esArquero,
+            puntosHistoricos: 0,
+            golesDiferenciaHistorico: 0,
+            partidosJugados: 0,
+            activo: true
+        });
+
+        renderizarPadron();
+        const chkNuevo = document.getElementById(`chk-${idTemp}`);
+        if (chkNuevo) chkNuevo.checked = true;
+        document.getElementById('nombre-invitado').value = '';
+    }
+
+    async function agregarJugador() {
+        const nombre = document.getElementById('nuevo-nombre').value.trim();
+        const esArquero = document.getElementById('nuevo-arquero').value === 'true';
+        const pts = parseFloat(document.getElementById('nuevo-pts').value);
+        const dif = parseFloat(document.getElementById('nuevo-dif').value);
+        const partidos = parseInt(document.getElementById('nuevo-partidos').value, 10);
+
+        if (!nombre) return alert("El nombre es obligatorio.");
+
+        const btn = document.getElementById('btn-add-jugador');
+        btn.disabled = true;
+        btn.innerText = "Guardando...";
+
+        try {
+            await addDoc(collection(db, "jugadores"), {
+                nombre: nombre.slice(0, 100),
+                esArquero,
+                puntosHistoricos: isNaN(pts) ? 0 : pts,
+                golesDiferenciaHistorico: isNaN(dif) ? 0 : dif,
+                partidosJugados: isNaN(partidos) || partidos < 0 ? 0 : partidos,
+                activo: true
+            });
+
+            document.getElementById('nuevo-nombre').value = '';
+            document.getElementById('nuevo-pts').value = '0';
+            document.getElementById('nuevo-dif').value = '0';
+            document.getElementById('nuevo-partidos').value = '0';
+            alert("Jugador agregado.");
+            await cargarJugadores();
+            await calcularTablasPosiciones();
+        } catch (err) {
+            console.error(err);
+            alert("Error al agregar jugador: " + traducirErrorFirebase(err));
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Guardar Nuevo Jugador";
+        }
+    }
+
+    function procesarCSV() {
+        const fileInput = document.getElementById('archivo-csv');
+        if (!fileInput.files.length) return alert("Seleccioná un archivo CSV.");
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async function(e) {
+            const text = e.target.result;
+            const rows = text.split(/\r?\n/).filter(row => row.trim() !== '');
+            if (rows.length < 2) return alert("El archivo no tiene datos válidos.");
+
+            const btn = document.getElementById('btn-cargar-csv');
+            btn.disabled = true;
+            btn.innerText = "Procesando...";
+            const promesas = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i].split(',');
+                if (cols.length >= 5) {
+                    const nombre = cols[0].trim().slice(0, 100);
+                    if (!nombre) continue;
+                    const esArquero = cols[1].trim().toUpperCase() === 'SI';
+                    const pts = parseFloat(cols[2]);
+                    const dif = parseFloat(cols[3]);
+                    const partidos = parseInt(cols[4], 10);
+
+                    promesas.push(
+                        addDoc(collection(db, "jugadores"), {
+                            nombre,
+                            esArquero,
+                            puntosHistoricos: isNaN(pts) ? 0 : pts,
+                            golesDiferenciaHistorico: isNaN(dif) ? 0 : dif,
+                            partidosJugados: isNaN(partidos) || partidos < 0 ? 0 : partidos,
+                            activo: true
+                        })
+                    );
+                }
+            }
+
+            if (promesas.length === 0) {
+                btn.disabled = false;
+                btn.innerText = "Subir y Procesar CSV";
+                return alert("No se encontraron filas válidas en el CSV.");
+            }
+
+            try {
+                await Promise.all(promesas);
+                alert(`¡Se cargaron ${promesas.length} jugadores exitosamente!`);
+                fileInput.value = "";
+                await cargarJugadores();
+                await calcularTablasPosiciones();
+            } catch (error) {
+                console.error(error);
+                alert("Hubo un error al cargar el CSV a Firebase: " + traducirErrorFirebase(error));
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Subir y Procesar CSV";
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // 4. LÓGICA DE ARMADO Y GUARDADO EN LA FECHA SELECCIONADA
+    async function armarYGuardarEquipos() {
+        const idFechaSeleccionada = document.getElementById('select-fecha-partido').value;
+        if (!idFechaSeleccionada) return alert("Seleccioná a qué fecha del torneo corresponde este partido antes de generar los equipos.");
+
+        const metodo = document.getElementById('metodo-armado').value;
+        const checkboxes = listaJugadoresDiv.querySelectorAll('input[type="checkbox"]:checked');
+
+        if (checkboxes.length < 2) return alert("Seleccioná al menos 2 jugadores.");
+
+        if (metodo === 'aleatorio') {
+            const ahora = Date.now();
+            if (ahora - ultimoArmadoAleatorio < 120000) {
+                return alert("Por favor, esperá 2 minutos antes de volver a generar equipos aleatorios.");
+            }
+        }
+
+        const idsSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+        const presentes = obtenerTodosLosJugadores()
+            .filter(j => idsSeleccionados.includes(j.id))
+            .map(j => ({
+                ...j,
+                promedio: j.partidosJugados > 0 ? (j.puntosHistoricos / j.partidosJugados) : 0
+            }));
+
+        equipoAzulActual = [];
+        equipoAmarilloActual = [];
+
+        if (metodo === 'aleatorio') {
+            const mezclados = [...presentes];
+            for (let i = mezclados.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [mezclados[i], mezclados[j]] = [mezclados[j], mezclados[i]];
+            }
+            mezclados.forEach((j, i) => i % 2 === 0 ? equipoAzulActual.push(j) : equipoAmarilloActual.push(j));
+        } else {
+            const arquos = presentes.filter(j => j.esArquero);
+            const campo = presentes.filter(j => !j.esArquero);
+
+            arquos.sort((a, b) => b.promedio - a.promedio || b.golesDiferenciaHistorico - a.golesDiferenciaHistorico);
+            campo.sort((a, b) => b.promedio - a.promedio || b.golesDiferenciaHistorico - a.golesDiferenciaHistorico);
+
+            let sumAzul = 0, sumAma = 0;
+
+            if (arquos.length > 0) {
+                equipoAzulActual.push(arquos[0]); sumAzul += arquos[0].promedio;
+                if (arquos.length > 1) { equipoAmarilloActual.push(arquos[1]); sumAma += arquos[1].promedio; }
+                else { sumAzul += 3.0; }
+
+                for (let i = 2; i < arquos.length; i++) campo.push(arquos[i]);
+                campo.sort((a, b) => b.promedio - a.promedio || b.golesDiferenciaHistorico - a.golesDiferenciaHistorico);
+            }
+
+            const limite = Math.ceil(presentes.length / 2);
+            campo.forEach(j => {
+                if (equipoAzulActual.length >= limite) { equipoAmarilloActual.push(j); sumAma += j.promedio; }
+                else if (equipoAmarilloActual.length >= limite) { equipoAzulActual.push(j); sumAzul += j.promedio; }
+                else {
+                    if (sumAzul <= sumAma) { equipoAzulActual.push(j); sumAzul += j.promedio; }
+                    else { equipoAmarilloActual.push(j); sumAma += j.promedio; }
+                }
+            });
+        }
+
+        const renderHTML = (eq) => eq.map(j => `<div style="background: white; padding: 8px; margin-bottom: 5px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px;">${j.esArquero ? '🧤' : '⚽'} ${escapeHtml(j.nombre)}</div>`).join('');
+        document.querySelector('#resultado-azul .lista').innerHTML = renderHTML(equipoAzulActual);
+        document.querySelector('#resultado-amarillo .lista').innerHTML = renderHTML(equipoAmarilloActual);
+
+        const idsAzul = equipoAzulActual.map(j => j.id);
+        const idsAmarillo = equipoAmarilloActual.map(j => j.id);
+
+        try {
+            await updateDoc(doc(db, "fechas", idFechaSeleccionada), {
+                jugadoresAzul: idsAzul,
+                jugadoresAmarillo: idsAmarillo
+            });
+            if (metodo === 'aleatorio') {
+                ultimoArmadoAleatorio = Date.now();
+            }
+            alert("¡Equipos armados y guardados en la fecha seleccionada con éxito!");
+        } catch (err) {
+            console.error(err);
+            alert("Se mostraron los equipos pero no se pudieron guardar en Firebase: " + traducirErrorFirebase(err));
+        }
+    }
+
+    // 5. CÁLCULO Y RENDERIZADO DE TABLAS DE POSICIONES
+    async function calcularTablasPosiciones() {
+        const contenedorHistorico = document.getElementById('contenedor-tabla-historico');
+        if (padronJugadores.length === 0) {
+            contenedorHistorico.innerHTML = "<p>No hay datos históricos.</p>";
+        } else {
+            const historicoOrdenado = [...padronJugadores].sort(
+                (a, b) => (b.puntosHistoricos || 0) - (a.puntosHistoricos || 0) || (b.golesDiferenciaHistorico || 0) - (a.golesDiferenciaHistorico || 0)
+            );
+
+            let htmlH = `<div class="table-wrap"><table>
+                <thead>
+                    <tr><th>Pos</th><th>Jugador</th><th>PJ</th><th>Pts</th><th>DG</th><th>Promedio</th></tr>
+                </thead>
+                <tbody>`;
+
+            historicoOrdenado.forEach((j, index) => {
+                const prom = j.partidosJugados > 0 ? (j.puntosHistoricos / j.partidosJugados).toFixed(2) : "0.00";
+                const inactivoMark = j.activo === false ? ' (Inactivo)' : '';
+                htmlH += `<tr>
+                    <td>${index + 1}</td>
+                    <td style="text-align: left; padding-left: 10px;">${escapeHtml(j.nombre)}${j.esArquero ? ' 🧤' : ''}<span style="font-size:10px; color:#888;">${inactivoMark}</span></td>
+                    <td>${j.partidosJugados || 0}</td>
+                    <td><b>${j.puntosHistoricos || 0}</b></td>
+                    <td>${j.golesDiferenciaHistorico || 0}</td>
+                    <td>${prom}</td>
+                </tr>`;
+            });
+            htmlH += `</tbody></table></div>`;
+            contenedorHistorico.innerHTML = htmlH;
+        }
+
+        const contenedorTorneo = document.getElementById('contenedor-tabla-torneo');
+        if (!torneoActivoId || !datosTorneoActivo) {
+            contenedorTorneo.innerHTML = "<p>No hay ningún torneo activo en este momento.</p>";
+            return;
+        }
+
+        const querySnapshot = await getDocs(collection(db, "fechas"));
+        const estadisticasTorneo = {};
+
+        padronJugadores.forEach(j => {
+            estadisticasTorneo[j.id] = { nombre: j.nombre, esArquero: j.esArquero, pj: 0, pts: 0, dg: 0, g: 0, e: 0, p: 0 };
+        });
+
+        let hayPartidosJugados = false;
+        querySnapshot.forEach((docSnap) => {
+            const f = docSnap.data();
+            if (f.idTorneo === torneoActivoId && f.estado === 'jugada') {
+                hayPartidosJugados = true;
+                const gAzul = f.golesAzul;
+                const gAmarillo = f.golesAmarillo;
+
+                const ptsAzul = calcularPuntosEquipo(gAzul, gAmarillo, datosTorneoActivo);
+                const ptsAmarillo = calcularPuntosEquipo(gAmarillo, gAzul, datosTorneoActivo);
+                const resAzul = gAzul > gAmarillo ? 'g' : (gAzul < gAmarillo ? 'p' : 'e');
+                const resAmarillo = gAmarillo > gAzul ? 'g' : (gAmarillo < gAzul ? 'p' : 'e');
+                const difAzul = gAzul - gAmarillo;
+                const difAmarillo = gAmarillo - gAzul;
+
+                if (f.jugadoresAzul) {
+                    f.jugadoresAzul.forEach(idJ => {
+                        if (!idJ.startsWith('invitado-') && estadisticasTorneo[idJ]) {
+                            estadisticasTorneo[idJ].pj += 1;
+                            estadisticasTorneo[idJ].pts += ptsAzul;
+                            estadisticasTorneo[idJ].dg += difAzul;
+                            estadisticasTorneo[idJ][resAzul] += 1;
+                        }
+                    });
+                }
+
+                if (f.jugadoresAmarillo) {
+                    f.jugadoresAmarillo.forEach(idJ => {
+                        if (!idJ.startsWith('invitado-') && estadisticasTorneo[idJ]) {
+                            estadisticasTorneo[idJ].pj += 1;
+                            estadisticasTorneo[idJ].pts += ptsAmarillo;
+                            estadisticasTorneo[idJ].dg += difAmarillo;
+                            estadisticasTorneo[idJ][resAmarillo] += 1;
+                        }
+                    });
+                }
+            }
+        });
+
+        if (!hayPartidosJugados) {
+            contenedorTorneo.innerHTML = "<p>Aún no hay partidos jugados cargados en este torneo.</p>";
+            return;
+        }
+
+        const torneoOrdenado = Object.values(estadisticasTorneo).sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.g - a.g);
+
+        let htmlT = `<div class="table-wrap"><table>
+            <thead>
+                <tr><th>Pos</th><th>Jugador</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>DG</th><th>Pts</th></tr>
+            </thead>
+            <tbody>`;
+
+        torneoOrdenado.forEach((j, index) => {
+            htmlT += `<tr>
+                <td>${index + 1}</td>
+                <td style="text-align: left; padding-left: 10px;">${escapeHtml(j.nombre)}${j.esArquero ? ' 🧤' : ''}</td>
+                <td>${j.pj}</td>
+                <td>${j.g}</td>
+                <td>${j.e}</td>
+                <td>${j.p}</td>
+                <td>${j.dg}</td>
+                <td><b>${j.pts}</b></td>
+            </tr>`;
+        });
+        htmlT += `</tbody></table></div>`;
+        contenedorTorneo.innerHTML = htmlT;
+    }
+
+    // 6. EVENT LISTENERS
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tabName = btn.getAttribute('data-tab');
+            if (tabName === 'torneo') {
+                document.getElementById('tab-torneo').classList.remove('hidden');
+                document.getElementById('tab-historico').classList.add('hidden');
+            } else {
+                document.getElementById('tab-torneo').classList.add('hidden');
+                document.getElementById('tab-historico').classList.remove('hidden');
+            }
+        });
+    });
+
+    document.getElementById('btn-toggle-ayuda').addEventListener('click', () => {
+        document.getElementById('panel-ayuda').classList.toggle('hidden');
+    });
+
+    document.getElementById('btn-login').addEventListener('click', verificarLogin);
+    document.getElementById('input-pass').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') verificarLogin();
+    });
+    document.getElementById('btn-cambiar-pass-admin').addEventListener('click', actualizarPassAdmin);
+    document.getElementById('btn-cambiar-pass-jugador').addEventListener('click', actualizarPassJugador);
+    document.getElementById('btn-crear-torneo').addEventListener('click', crearTorneo);
+    document.getElementById('btn-agregar-a-lote').addEventListener('click', agregarFechaAlLote);
+    document.getElementById('btn-guardar-lote').addEventListener('click', guardarLoteFechas);
+    document.getElementById('btn-add-jugador').addEventListener('click', agregarJugador);
+    document.getElementById('btn-add-invitado').addEventListener('click', agregarInvitado);
+    document.getElementById('btn-cargar-csv').addEventListener('click', procesarCSV);
+    document.getElementById('btn-armar').addEventListener('click', armarYGuardarEquipos);
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+        invitadosTemporales = [];
+        document.getElementById('input-pass').value = '';
+        await signOut(auth);
+    });
+</script>
+</body>
+</html>
