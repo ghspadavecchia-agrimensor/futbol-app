@@ -37,6 +37,9 @@
         .panel-ayuda ul { margin: 6px 0 12px 18px; padding: 0; }
         .panel-ayuda code { background: #e8f5e9; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
         .fecha-item { background: #fafafa; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .lote-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; padding: 6px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .lote-row input { margin-bottom: 0; padding: 6px 8px; font-size: 13px; }
+        .lote-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #eee; font-size: 12px; color: #555; }
         .error-box { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px; }
         .role-badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: bold; vertical-align: middle; margin-left: 6px; }
         .role-admin { background-color: #ffe0b2; color: #e65100; }
@@ -94,13 +97,13 @@
         <ul>
             <li><b>Armar Equipos:</b> Seleccioná la fecha programada en el menú desplegable, marcá los jugadores presentes (podés sumar invitados temporales que no alteran el historial), elegí <i>Hándicap</i> o <i>Aleatorio</i> y tocá <b>Generar y Guardar Equipos</b>.</li>
             <li><b>Reglas de Hándicap:</b> Equilibra el promedio histórico (<code>Puntos / PJ</code>) y diferencia de gol. Si hay un solo arquero, se compensa al equipo rival con jugadores de campo de mayor nivel.</li>
-            <li><b>Armado Aleatorio:</b> Por reglas del grupo, solo permite sortear una vez cada 2 minutos.</li>
+            <li><b>Armado Aleatorio:</b> Distribuye jugadores al azar repartiendo los arqueros de forma equitativa entre ambos equipos (si son pares, misma cantidad en cada uno; nunca todos juntos). Por reglas del grupo, solo permite sortear una vez cada 2 minutos.</li>
             <li><b>Suplentes:</b> Todos los convocados del equipo (titulares y suplentes) suman los mismos puntos y diferencia de gol.</li>
         </ul>
         <div id="ayuda-admin-extra" class="hidden">
             <h4>🛠️ Guía para Administradores</h4>
             <ul>
-                <li><b>Torneos y Fechas:</b> Creá un torneo (definí puntos por G/E/P) y luego agregá fechas al lote desde el calendario. Podés editar nombres, suspender/reactivar fechas o cargar resultados.</li>
+                <li><b>Torneos y Fechas:</b> Creá un torneo (definí puntos por G/E/P) y cargá fechas de 3 formas: una por una, indicando fecha inicial + cantidad (cada 7 días) o fecha inicial + última fecha (cada 7 días). Antes de guardar el lote podés editar manualmente cada fecha o su nombre.</li>
                 <li><b>Corregir Resultados:</b> Si volvés a cargar el resultado de una fecha ya jugada, el sistema ajusta automáticamente la diferencia de puntos y goles sin duplicar partidos jugados.</li>
                 <li><b>Carga Masiva CSV:</b> El archivo debe tener encabezados en este orden exacto:<br>
                     <code>Nombre,EsArquero,Puntos,DifGol,Partidos</code> (usando <code>SI</code> o <code>NO</code> en <code>EsArquero</code>).</li>
@@ -170,10 +173,48 @@
         <hr style="border: 0; border-top: 1px solid #ffcc80; margin: 15px 0;">
 
         <h4>Crear Múltiples Fechas</h4>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <input type="date" id="input-multi-fecha" style="margin-bottom:0; flex:2;">
-            <button id="btn-agregar-a-lote" class="btn-info" style="margin-bottom:0; flex:1;">+ Agregar a la lista</button>
+        <div class="form-group" style="margin-bottom: 8px;">
+            <label for="modo-carga-fechas">Modo de carga de fechas</label>
+            <select id="modo-carga-fechas" style="margin-bottom: 0;">
+                <option value="individual">1. Agregar fechas individuales</option>
+                <option value="cantidad">2. Fecha inicial + cantidad de fechas (cada 7 días)</option>
+                <option value="rango">3. Fecha inicial + última fecha (cada 7 días)</option>
+            </select>
         </div>
+
+        <div id="panel-modo-individual" style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+            <input type="date" id="input-multi-fecha" style="margin-bottom:0; flex:2; min-width: 160px;">
+            <button id="btn-agregar-a-lote" class="btn-info" style="margin-bottom:0; flex:1; min-width: 140px;">+ Agregar a la lista</button>
+        </div>
+
+        <div id="panel-modo-cantidad" class="hidden" style="margin-bottom: 10px;">
+            <div class="grid">
+                <div class="form-group">
+                    <label for="input-fecha-inicio-cant">Fecha Inicial</label>
+                    <input type="date" id="input-fecha-inicio-cant" style="margin-bottom: 0;">
+                </div>
+                <div class="form-group">
+                    <label for="input-cantidad-fechas">Cantidad de Fechas (cada 7 días)</label>
+                    <input type="number" id="input-cantidad-fechas" value="8" min="1" max="100" step="1" style="margin-bottom: 0;">
+                </div>
+            </div>
+            <button id="btn-generar-por-cantidad" class="btn-info" style="margin-top: 8px; margin-bottom: 0;">+ Generar fechas en el lote</button>
+        </div>
+
+        <div id="panel-modo-rango" class="hidden" style="margin-bottom: 10px;">
+            <div class="grid">
+                <div class="form-group">
+                    <label for="input-fecha-inicio-rango">Fecha Inicial</label>
+                    <input type="date" id="input-fecha-inicio-rango" style="margin-bottom: 0;">
+                </div>
+                <div class="form-group">
+                    <label for="input-fecha-fin-rango">Última Fecha</label>
+                    <input type="date" id="input-fecha-fin-rango" style="margin-bottom: 0;">
+                </div>
+            </div>
+            <button id="btn-generar-por-rango" class="btn-info" style="margin-top: 8px; margin-bottom: 0;">+ Generar fechas en el lote</button>
+        </div>
+
         <div id="lista-lote-preview" style="background: white; padding: 10px; border-radius: 4px; border: 1px dashed #ccc; margin-bottom: 10px; min-height: 40px; font-size: 13px; color: #666;">
             No hay fechas agregadas en este lote.
         </div>
@@ -326,6 +367,7 @@
     let torneoActivoId = null;
     let nombreTorneoActivo = "";
     let datosTorneoActivo = null;
+    let countFechasExistentesTorneo = 0;
     let fechasLoteTemporal = [];
     let equipoAzulActual = [];
     let equipoAmarilloActual = [];
@@ -587,6 +629,7 @@
             }
             await cargarFechasSelectPartido();
         } else {
+            countFechasExistentesTorneo = 0;
             document.getElementById('select-fecha-partido').innerHTML = '<option value="">-- No hay torneo activo --</option>';
             const listaAdmin = document.getElementById('lista-fechas-admin');
             if (listaAdmin) listaAdmin.innerHTML = "<p style='font-size:12px; color:#666;'>Creá un torneo activo para gestionar fechas.</p>";
@@ -604,48 +647,233 @@
         }
     }
 
+    function formatearFechaAR(isoStr) {
+        if (!isoStr || !/^\d{4}-\d{2}-\d{2}$/.test(isoStr)) return isoStr || "";
+        const [yyyy, mm, dd] = isoStr.split('-');
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    function sumarDiasISO(isoStr, dias) {
+        const [yyyy, mm, dd] = isoStr.split('-').map(Number);
+        const dt = new Date(Date.UTC(yyyy, mm - 1, dd));
+        dt.setUTCDate(dt.getUTCDate() + dias);
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dt.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function crearItemLote(fechaISO) {
+        return {
+            idTemp: 'lote-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+            fechaCalendario: fechaISO,
+            nombrePersonalizado: null
+        };
+    }
+
+    function obtenerNombreDefaultLote(index, fechaISO) {
+        return `Fecha ${countFechasExistentesTorneo + index + 1} - ${formatearFechaAR(fechaISO)}`;
+    }
+
+    function cambiarModoCargaFechas() {
+        const modo = document.getElementById('modo-carga-fechas').value;
+        document.getElementById('panel-modo-individual').classList.toggle('hidden', modo !== 'individual');
+        document.getElementById('panel-modo-cantidad').classList.toggle('hidden', modo !== 'cantidad');
+        document.getElementById('panel-modo-rango').classList.toggle('hidden', modo !== 'rango');
+    }
+
+    function agregarFechasISOAlLote(fechasISO) {
+        const existentes = new Set(fechasLoteTemporal.map(item => item.fechaCalendario));
+        let agregadas = 0;
+        let omitidas = 0;
+
+        fechasISO.forEach(f => {
+            if (existentes.has(f)) {
+                omitidas++;
+            } else {
+                existentes.add(f);
+                fechasLoteTemporal.push(crearItemLote(f));
+                agregadas++;
+            }
+        });
+
+        fechasLoteTemporal.sort((a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || ""));
+        actualizarPreviewLote();
+        return { agregadas, omitidas };
+    }
+
     function agregarFechaAlLote() {
         const inputFecha = document.getElementById('input-multi-fecha').value;
         if (!inputFecha) return alert("Seleccioná una fecha del calendario.");
 
-        if (fechasLoteTemporal.includes(inputFecha)) {
+        if (fechasLoteTemporal.some(item => item.fechaCalendario === inputFecha)) {
             return alert("Esa fecha ya está agregada en el lote.");
         }
 
-        fechasLoteTemporal.push(inputFecha);
-        fechasLoteTemporal.sort();
-        actualizarPreviewLote();
+        agregarFechasISOAlLote([inputFecha]);
         document.getElementById('input-multi-fecha').value = '';
+    }
+
+    function generarLotePorCantidad() {
+        const inicio = document.getElementById('input-fecha-inicio-cant').value;
+        const cantidad = parseInt(document.getElementById('input-cantidad-fechas').value, 10);
+
+        if (!inicio) return alert("Seleccioná la fecha inicial.");
+        if (isNaN(cantidad) || cantidad < 1 || cantidad > 100) {
+            return alert("Ingresá una cantidad de fechas válida (entre 1 y 100).");
+        }
+
+        const generadas = [];
+        for (let i = 0; i < cantidad; i++) {
+            generadas.push(sumarDiasISO(inicio, i * 7));
+        }
+
+        const { agregadas, omitidas } = agregarFechasISOAlLote(generadas);
+        if (agregadas === 0) {
+            alert("Todas esas fechas ya estaban en el lote.");
+        } else if (omitidas > 0) {
+            alert(`Se agregaron ${agregadas} fechas (${omitidas} ya existían en el lote). Podés editarlas abajo antes de guardar.`);
+        }
+    }
+
+    function generarLotePorRango() {
+        const inicio = document.getElementById('input-fecha-inicio-rango').value;
+        const fin = document.getElementById('input-fecha-fin-rango').value;
+
+        if (!inicio || !fin) return alert("Seleccioná tanto la fecha inicial como la última fecha.");
+        if (fin < inicio) return alert("La última fecha no puede ser anterior a la fecha inicial.");
+
+        const generadas = [];
+        let actual = inicio;
+        let limiteAlcanzado = false;
+
+        while (actual <= fin) {
+            if (generadas.length >= 100) {
+                limiteAlcanzado = true;
+                break;
+            }
+            generadas.push(actual);
+            actual = sumarDiasISO(actual, 7);
+        }
+
+        const { agregadas, omitidas } = agregarFechasISOAlLote(generadas);
+        if (limiteAlcanzado) {
+            alert(`Se alcanzó el máximo de 100 fechas por lote. Se agregaron ${agregadas} fechas.`);
+        } else if (agregadas === 0) {
+            alert("Todas las fechas de ese rango ya estaban en el lote.");
+        } else if (omitidas > 0) {
+            alert(`Se agregaron ${agregadas} fechas (${omitidas} ya existían en el lote). Podés editarlas abajo antes de guardar.`);
+        }
     }
 
     function actualizarPreviewLote() {
         const container = document.getElementById('lista-lote-preview');
+        container.innerHTML = '';
+
         if (fechasLoteTemporal.length === 0) {
-            container.innerHTML = "No hay fechas agregadas en este lote.";
+            container.textContent = "No hay fechas agregadas en este lote.";
             return;
         }
 
-        container.innerHTML = fechasLoteTemporal.map((f, index) => {
-            const [yyyy, mm, dd] = f.split('-');
-            const fechaFormateada = `${dd}/${mm}/${yyyy}`;
-            return `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                <span><b>Fecha ${index + 1}</b> - ${escapeHtml(fechaFormateada)}</span>
-                <button data-quitar-fecha="${escapeHtml(f)}" style="background:#f44336; padding:2px 6px; width:auto; font-size:11px; margin:0;">Quitar</button>
-            </div>`;
-        }).join('');
+        const toolbar = document.createElement('div');
+        toolbar.className = 'lote-toolbar';
 
-        container.querySelectorAll('[data-quitar-fecha]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const fechaStr = btn.getAttribute('data-quitar-fecha');
-                fechasLoteTemporal = fechasLoteTemporal.filter(f => f !== fechaStr);
+        const countSpan = document.createElement('span');
+        countSpan.innerHTML = `<b>${fechasLoteTemporal.length} fecha${fechasLoteTemporal.length === 1 ? '' : 's'} en el lote</b> — podés editar fecha o nombre antes de guardar`;
+
+        const toolbarBtns = document.createElement('div');
+        toolbarBtns.style.cssText = 'display: flex; gap: 6px;';
+
+        const btnOrdenar = document.createElement('button');
+        btnOrdenar.type = 'button';
+        btnOrdenar.className = 'btn-info';
+        btnOrdenar.style.cssText = 'padding: 3px 8px; width: auto; font-size: 11px; margin: 0;';
+        btnOrdenar.textContent = 'Ordenar por fecha';
+        btnOrdenar.addEventListener('click', () => {
+            fechasLoteTemporal.sort((a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || ""));
+            actualizarPreviewLote();
+        });
+
+        const btnVaciar = document.createElement('button');
+        btnVaciar.type = 'button';
+        btnVaciar.className = 'btn-danger';
+        btnVaciar.style.cssText = 'padding: 3px 8px; width: auto; font-size: 11px; margin: 0;';
+        btnVaciar.textContent = 'Vaciar lote';
+        btnVaciar.addEventListener('click', () => {
+            fechasLoteTemporal = [];
+            actualizarPreviewLote();
+        });
+
+        toolbarBtns.append(btnOrdenar, btnVaciar);
+        toolbar.append(countSpan, toolbarBtns);
+        container.appendChild(toolbar);
+
+        fechasLoteTemporal.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'lote-row';
+
+            const numLabel = document.createElement('span');
+            numLabel.style.cssText = 'font-weight: bold; font-size: 12px; min-width: 26px; color: #333;';
+            numLabel.textContent = `#${countFechasExistentesTorneo + index + 1}`;
+
+            const inputDate = document.createElement('input');
+            inputDate.type = 'date';
+            inputDate.value = item.fechaCalendario;
+            inputDate.style.cssText = 'flex: 1; min-width: 135px;';
+
+            const inputNombre = document.createElement('input');
+            inputNombre.type = 'text';
+            inputNombre.maxLength = 150;
+            inputNombre.value = item.nombrePersonalizado !== null
+                ? item.nombrePersonalizado
+                : obtenerNombreDefaultLote(index, item.fechaCalendario);
+            inputNombre.placeholder = obtenerNombreDefaultLote(index, item.fechaCalendario);
+            inputNombre.style.cssText = 'flex: 2; min-width: 180px;';
+
+            inputDate.addEventListener('change', (e) => {
+                item.fechaCalendario = e.target.value;
+                const nuevoDefault = obtenerNombreDefaultLote(index, item.fechaCalendario);
+                inputNombre.placeholder = nuevoDefault;
+                if (item.nombrePersonalizado === null) {
+                    inputNombre.value = nuevoDefault;
+                }
+            });
+
+            inputNombre.addEventListener('input', (e) => {
+                const val = e.target.value;
+                const defaultActual = obtenerNombreDefaultLote(index, item.fechaCalendario);
+                item.nombrePersonalizado = (val.trim() === '' || val === defaultActual) ? null : val;
+            });
+
+            const btnQuitar = document.createElement('button');
+            btnQuitar.type = 'button';
+            btnQuitar.className = 'btn-danger';
+            btnQuitar.style.cssText = 'padding: 6px 8px; width: auto; font-size: 11px; margin: 0;';
+            btnQuitar.textContent = 'Quitar';
+            btnQuitar.addEventListener('click', () => {
+                fechasLoteTemporal = fechasLoteTemporal.filter(x => x.idTemp !== item.idTemp);
                 actualizarPreviewLote();
             });
+
+            row.append(numLabel, inputDate, inputNombre, btnQuitar);
+            container.appendChild(row);
         });
     }
 
     async function guardarLoteFechas() {
         if (!torneoActivoId) return alert("Primero debés crear un torneo activo.");
         if (fechasLoteTemporal.length === 0) return alert("Agregá al menos una fecha al lote.");
+
+        const fechaInvalida = fechasLoteTemporal.find(
+            item => !item.fechaCalendario || !/^\d{4}-\d{2}-\d{2}$/.test(item.fechaCalendario)
+        );
+        if (fechaInvalida) {
+            return alert("Todas las fechas del lote deben tener una fecha de calendario válida antes de guardar.");
+        }
+
+        const btn = document.getElementById('btn-guardar-lote');
+        btn.disabled = true;
+        btn.textContent = "Guardando fechas...";
 
         try {
             const querySnapshot = await getDocs(collection(db, "fechas"));
@@ -654,37 +882,41 @@
                 if (docSnap.data().idTorneo === torneoActivoId) countExistentes++;
             });
 
-            const promesas = [];
-            fechasLoteTemporal.forEach((f, idx) => {
-                const numeroFecha = countExistentes + idx + 1;
-                const [yyyy, mm, dd] = f.split('-');
-                const fechaFormateada = `${dd}/${mm}/${yyyy}`;
-                const nombreGenerado = `Fecha ${numeroFecha} - ${fechaFormateada}`;
+            const ordenadas = [...fechasLoteTemporal].sort(
+                (a, b) => a.fechaCalendario.localeCompare(b.fechaCalendario)
+            );
 
-                promesas.push(
-                    addDoc(collection(db, "fechas"), {
-                        idTorneo: torneoActivoId,
-                        fechaCalendario: f,
-                        nombrePartido: nombreGenerado,
-                        numeroOrden: numeroFecha,
-                        estado: "programada",
-                        golesAzul: null,
-                        golesAmarillo: null,
-                        jugadoresAzul: [],
-                        jugadoresAmarillo: []
-                    })
-                );
+            const promesas = ordenadas.map((item, idx) => {
+                const numeroFecha = countExistentes + idx + 1;
+                const nombreFinal = (item.nombrePersonalizado && item.nombrePersonalizado.trim() !== '')
+                    ? item.nombrePersonalizado.trim().slice(0, 150)
+                    : `Fecha ${numeroFecha} - ${formatearFechaAR(item.fechaCalendario)}`;
+
+                return addDoc(collection(db, "fechas"), {
+                    idTorneo: torneoActivoId,
+                    fechaCalendario: item.fechaCalendario,
+                    nombrePartido: nombreFinal,
+                    numeroOrden: numeroFecha,
+                    estado: "programada",
+                    golesAzul: null,
+                    golesAmarillo: null,
+                    jugadoresAzul: [],
+                    jugadoresAmarillo: []
+                });
             });
 
             await Promise.all(promesas);
             fechasLoteTemporal = [];
-            actualizarPreviewLote();
             await cargarFechasAdmin();
             await cargarFechasSelectPartido();
-            alert("¡Fechas guardadas con éxito!");
+            actualizarPreviewLote();
+            alert(`¡Se guardaron ${promesas.length} fechas con éxito!`);
         } catch (err) {
             console.error(err);
             alert("Error al guardar fechas: " + traducirErrorFirebase(err));
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Guardar Lote de Fechas en el Torneo";
         }
     }
 
@@ -703,6 +935,8 @@
         });
 
         fechasList.sort((a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || ""));
+        countFechasExistentesTorneo = fechasList.length;
+        if (fechasLoteTemporal.length > 0) actualizarPreviewLote();
 
         contenedor.innerHTML = '';
         if (fechasList.length === 0) {
@@ -1163,12 +1397,24 @@
         equipoAmarilloActual = [];
 
         if (metodo === 'aleatorio') {
-            const mezclados = [...presentes];
-            for (let i = mezclados.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [mezclados[i], mezclados[j]] = [mezclados[j], mezclados[i]];
-            }
-            mezclados.forEach((j, i) => i % 2 === 0 ? equipoAzulActual.push(j) : equipoAmarilloActual.push(j));
+            const mezclar = (lista) => {
+                const copia = [...lista];
+                for (let i = copia.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [copia[i], copia[j]] = [copia[j], copia[i]];
+                }
+                return copia;
+            };
+
+            const arqueros = mezclar(presentes.filter(j => j.esArquero));
+            const campo = mezclar(presentes.filter(j => !j.esArquero));
+
+            let turnoAzul = Math.random() < 0.5;
+            [...arqueros, ...campo].forEach(j => {
+                if (turnoAzul) equipoAzulActual.push(j);
+                else equipoAmarilloActual.push(j);
+                turnoAzul = !turnoAzul;
+            });
         } else {
             const arquos = presentes.filter(j => j.esArquero);
             const campo = presentes.filter(j => !j.esArquero);
@@ -1360,7 +1606,10 @@
     document.getElementById('btn-cambiar-pass-admin').addEventListener('click', actualizarPassAdmin);
     document.getElementById('btn-cambiar-pass-jugador').addEventListener('click', actualizarPassJugador);
     document.getElementById('btn-crear-torneo').addEventListener('click', crearTorneo);
+    document.getElementById('modo-carga-fechas').addEventListener('change', cambiarModoCargaFechas);
     document.getElementById('btn-agregar-a-lote').addEventListener('click', agregarFechaAlLote);
+    document.getElementById('btn-generar-por-cantidad').addEventListener('click', generarLotePorCantidad);
+    document.getElementById('btn-generar-por-rango').addEventListener('click', generarLotePorRango);
     document.getElementById('btn-guardar-lote').addEventListener('click', guardarLoteFechas);
     document.getElementById('btn-add-jugador').addEventListener('click', agregarJugador);
     document.getElementById('btn-add-invitado').addEventListener('click', agregarInvitado);
