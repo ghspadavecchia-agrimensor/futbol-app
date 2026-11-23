@@ -40,6 +40,34 @@
         .lote-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; padding: 6px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; }
         .lote-row input { margin-bottom: 0; padding: 6px 8px; font-size: 13px; }
         .lote-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #eee; font-size: 12px; color: #555; }
+
+        /* Vista Pública de Fechas y Equipos */
+        .fecha-publica-card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .fecha-publica-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+        .marcador-badge { font-weight: bold; font-size: 13px; padding: 4px 10px; border-radius: 14px; }
+        .marcador-jugada { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+        .marcador-programada { background: #e3f2fd; color: #01579b; border: 1px solid #90caf9; }
+        .marcador-suspendida { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+        .equipos-resumen-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+        .equipo-mini { flex: 1; min-width: 210px; padding: 10px; border-radius: 6px; font-size: 13px; }
+        .equipo-mini-azul { background: #e0f7fa; border: 1px solid var(--azul); }
+        .equipo-mini-amarillo { background: #fffde7; border: 1px solid var(--amarillo); }
+        .equipo-mini-titulo { font-weight: bold; margin-bottom: 6px; font-size: 13px; }
+        .equipo-mini ul { margin: 0; padding-left: 18px; }
+        .equipo-mini li { margin-bottom: 3px; }
+
+        /* Modal Editar Equipos (Admin) */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 14px; z-index: 1000; }
+        .modal-box { background: #fff; border-radius: 8px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+        .modal-warn { background: #fff3e0; border: 1px solid #ffb74d; color: #e65100; padding: 10px; border-radius: 4px; font-size: 12px; margin-bottom: 12px; }
+        .editor-player-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+        .editor-player-row:nth-child(even) { background: #fafafa; }
+        .pill-group { display: flex; gap: 4px; }
+        .pill-btn { padding: 4px 10px; width: auto; margin: 0; font-size: 12px; background: #e0e0e0; color: #333; border-radius: 4px; }
+        .pill-btn:hover { background: #d5d5d5; }
+        .pill-btn.sel-azul { background: var(--azul); color: #fff; }
+        .pill-btn.sel-amarillo { background: #f9a825; color: #fff; }
+        .pill-btn.sel-none { background: #78909c; color: #fff; }
         .error-box { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px; }
         .role-badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: bold; vertical-align: middle; margin-left: 6px; }
         .role-admin { background-color: #ffe0b2; color: #e65100; }
@@ -98,13 +126,14 @@
             <li><b>Armar Equipos:</b> Seleccioná la fecha programada en el menú desplegable, marcá los jugadores presentes (podés sumar invitados temporales que no alteran el historial), elegí <i>Hándicap</i> o <i>Aleatorio</i> y tocá <b>Generar y Guardar Equipos</b>.</li>
             <li><b>Reglas de Hándicap:</b> Equilibra el promedio histórico (<code>Puntos / PJ</code>) y diferencia de gol. Si hay un solo arquero, se compensa al equipo rival con jugadores de campo de mayor nivel.</li>
             <li><b>Armado Aleatorio:</b> Distribuye jugadores al azar repartiendo los arqueros de forma equitativa entre ambos equipos (si son pares, misma cantidad en cada uno; nunca todos juntos). Por reglas del grupo, solo permite sortear una vez cada 2 minutos.</li>
+            <li><b>Fechas y Equipos:</b> En la pestaña <i>Fechas y Equipos</i> cualquier usuario puede consultar los resultados de cada partido y cómo estuvieron conformados ambos equipos.</li>
             <li><b>Suplentes:</b> Todos los convocados del equipo (titulares y suplentes) suman los mismos puntos y diferencia de gol.</li>
         </ul>
         <div id="ayuda-admin-extra" class="hidden">
             <h4>🛠️ Guía para Administradores</h4>
             <ul>
                 <li><b>Torneos y Fechas:</b> Creá un torneo (definí puntos por G/E/P) y cargá fechas de 3 formas: una por una, indicando fecha inicial + cantidad (cada 7 días) o fecha inicial + última fecha (cada 7 días). Antes de guardar el lote podés editar manualmente cada fecha o su nombre.</li>
-                <li><b>Corregir Resultados:</b> Si volvés a cargar el resultado de una fecha ya jugada, el sistema ajusta automáticamente la diferencia de puntos y goles sin duplicar partidos jugados.</li>
+                <li><b>Editar Equipos y Corregir Resultados:</b> Desde <b>Editar Equipos</b> podés modificar quién jugó en cada equipo para cualquier fecha; si el resultado ya estaba cargado, las estadísticas del torneo e históricas se recalculan automáticamente. Al corregir un resultado también se ajusta la diferencia sin duplicar partidos jugados.</li>
                 <li><b>Carga Masiva CSV:</b> El archivo debe tener encabezados en este orden exacto:<br>
                     <code>Nombre,EsArquero,Puntos,DifGol,Partidos</code> (usando <code>SI</code> o <code>NO</code> en <code>EsArquero</code>).</li>
                 <li><b>Baja Lógica:</b> Al desactivar un jugador deja de aparecer para nuevos sorteos pero conserva su historial en las tablas.</li>
@@ -308,6 +337,7 @@
 
     <div class="tabs">
         <button class="tab-btn active" data-tab="torneo">Torneo Actual</button>
+        <button class="tab-btn" data-tab="fechas">Fechas y Equipos</button>
         <button class="tab-btn" data-tab="historico">Histórico General</button>
     </div>
 
@@ -316,9 +346,51 @@
         <div id="contenedor-tabla-torneo">Cargando posiciones...</div>
     </div>
 
+    <div id="tab-fechas" class="hidden">
+        <h4 id="titulo-fechas-publicas">Resultados y Equipos por Fecha</h4>
+        <div id="contenedor-fechas-publicas">Cargando fechas...</div>
+    </div>
+
     <div id="tab-historico" class="hidden">
         <h4>Ranking Histórico General</h4>
         <div id="contenedor-tabla-historico">Cargando historial...</div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR EQUIPOS DE UNA FECHA (ADMIN) -->
+<div id="modal-editar-equipos" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 id="modal-eq-titulo" style="margin: 0; text-align: left;">✏️ Editar Equipos</h3>
+            <button id="btn-cerrar-modal-eq" type="button" class="btn-secondary" style="width: auto; margin: 0; padding: 6px 10px;">✖</button>
+        </div>
+
+        <div id="modal-eq-alerta-jugada" class="modal-warn hidden"></div>
+
+        <div class="equipos-resumen-grid" style="margin-bottom: 12px;">
+            <div class="equipo-mini equipo-mini-azul">
+                <div class="equipo-mini-titulo" style="color: var(--azul);">🔵 Equipo Azul (<span id="modal-count-azul">0</span>)</div>
+                <div id="modal-resumen-azul" style="font-size: 12px;"></div>
+            </div>
+            <div class="equipo-mini equipo-mini-amarillo">
+                <div class="equipo-mini-titulo" style="color: #b28704;">🟡 Equipo Amarillo (<span id="modal-count-amarillo">0</span>)</div>
+                <div id="modal-resumen-amarillo" style="font-size: 12px;"></div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; background: #e3f2fd; padding: 8px; border-radius: 6px;">
+            <input type="text" id="modal-nuevo-invitado" placeholder="Agregar invitado a esta fecha..." maxlength="40" style="flex: 2; min-width: 150px; margin: 0; padding: 6px 8px;">
+            <button id="btn-modal-inv-azul" type="button" class="btn-info" style="width: auto; margin: 0; padding: 6px 10px; font-size: 12px;">+ Azul</button>
+            <button id="btn-modal-inv-amarillo" type="button" class="btn-warning" style="width: auto; margin: 0; padding: 6px 10px; font-size: 12px;">+ Amarillo</button>
+        </div>
+
+        <div style="font-size: 12px; font-weight: bold; color: #555; margin-bottom: 6px;">Asigná cada jugador a Azul, Amarillo o Sin jugar:</div>
+        <div id="modal-lista-jugadores" style="border: 1px solid #ddd; border-radius: 6px; max-height: 300px; overflow-y: auto; margin-bottom: 14px;"></div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="btn-cancelar-modal-eq" type="button" class="btn-secondary" style="width: auto; margin: 0;">Cancelar</button>
+            <button id="btn-guardar-modal-eq" type="button" style="width: auto; margin: 0;">Guardar Cambios en Equipos</button>
+        </div>
     </div>
 </div>
 
@@ -372,6 +444,10 @@
     let equipoAzulActual = [];
     let equipoAmarilloActual = [];
     let rolActual = 'jugador';
+    let editorEquiposFechaId = null;
+    let editorEquiposFechaData = null;
+    let editorEquiposAsignacion = new Map();
+    let editorEquiposInvitados = [];
 
     const loadingPanel = document.getElementById('loading-panel');
     const loginPanel = document.getElementById('login-panel');
@@ -636,6 +712,37 @@
         }
     }
 
+    function obtenerInfoJugadorPorId(id) {
+        const j = padronJugadores.find(p => p.id === id);
+        if (j) {
+            return {
+                id: j.id,
+                nombre: j.nombre,
+                esArquero: !!j.esArquero,
+                esInvitado: false,
+                inactivo: j.activo === false
+            };
+        }
+        if (typeof id === 'string' && id.startsWith('invitado-')) {
+            const sepIdx = id.indexOf(':');
+            const nombreInv = sepIdx !== -1 ? id.slice(sepIdx + 1).trim() : '';
+            return {
+                id,
+                nombre: nombreInv ? `${nombreInv} (Invitado)` : 'Invitado',
+                esArquero: false,
+                esInvitado: true,
+                inactivo: false
+            };
+        }
+        return {
+            id,
+            nombre: `Jugador (${String(id).slice(0, 6)})`,
+            esArquero: false,
+            esInvitado: false,
+            inactivo: false
+        };
+    }
+
     function actualizarBannerTorneo() {
         const banner = document.getElementById('banner-torneo-activo');
         if (banner) {
@@ -644,6 +751,10 @@
         const tituloTorneoTab = document.getElementById('titulo-tabla-torneo');
         if (tituloTorneoTab) {
             tituloTorneoTab.innerText = `Tabla de Posiciones (${nombreTorneoActivo})`;
+        }
+        const tituloFechasTab = document.getElementById('titulo-fechas-publicas');
+        if (tituloFechasTab) {
+            tituloFechasTab.innerText = `Resultados y Equipos (${nombreTorneoActivo})`;
         }
     }
 
@@ -909,6 +1020,7 @@
             fechasLoteTemporal = [];
             await cargarFechasAdmin();
             await cargarFechasSelectPartido();
+            await calcularTablasPosiciones();
             actualizarPreviewLote();
             alert(`¡Se guardaron ${promesas.length} fechas con éxito!`);
         } catch (err) {
@@ -945,16 +1057,25 @@
         }
 
         fechasList.forEach((f) => {
+            const cantAzul = Array.isArray(f.jugadoresAzul) ? f.jugadoresAzul.length : 0;
+            const cantAma = Array.isArray(f.jugadoresAmarillo) ? f.jugadoresAmarillo.length : 0;
+            const tieneEquipos = cantAzul > 0 || cantAma > 0;
+            const infoEquipos = tieneEquipos ? ` · Equipos: ${cantAzul} vs ${cantAma}` : ' · Sin equipos';
             const estadoTexto = f.estado === 'jugada' ? `✅ Jugado (${f.golesAzul}-${f.golesAmarillo})` : `(${f.estado})`;
             const div = document.createElement('div');
             div.className = 'fecha-item';
 
             const infoDiv = document.createElement('div');
             infoDiv.style.flex = '2';
-            infoDiv.innerHTML = `<small style="color:#666;">📅 ${escapeHtml(f.fechaCalendario || 'Sin fecha')}</small><br><b>${escapeHtml(f.nombrePartido)}</b> <small>${escapeHtml(estadoTexto)}</small>`;
+            infoDiv.innerHTML = `<small style="color:#666;">📅 ${escapeHtml(f.fechaCalendario || 'Sin fecha')}${escapeHtml(infoEquipos)}</small><br><b>${escapeHtml(f.nombrePartido)}</b> <small>${escapeHtml(estadoTexto)}</small>`;
 
             const actionsDiv = document.createElement('div');
             actionsDiv.style.cssText = 'display: flex; gap: 5px; flex-wrap: wrap;';
+
+            const btnEquipos = document.createElement('button');
+            btnEquipos.style.cssText = 'background:#7b1fa2; padding: 5px 8px; width:auto; margin:0; font-size:12px;';
+            btnEquipos.textContent = tieneEquipos ? 'Editar Equipos' : 'Armar Equipos';
+            btnEquipos.addEventListener('click', () => abrirEditorEquipos(f.id));
 
             const btnRes = document.createElement('button');
             btnRes.className = 'btn-warning';
@@ -975,7 +1096,7 @@
             btnEstado.textContent = esSuspendida ? 'Reactivar' : 'Suspender';
             btnEstado.addEventListener('click', () => cambiarEstadoFecha(f.id, esSuspendida ? 'programada' : 'suspendida'));
 
-            actionsDiv.append(btnRes, btnEdit, btnEstado);
+            actionsDiv.append(btnEquipos, btnRes, btnEdit, btnEstado);
             div.append(infoDiv, actionsDiv);
             contenedor.appendChild(div);
         });
@@ -989,22 +1110,290 @@
         const disponibles = [];
         querySnapshot.forEach((docSnap) => {
             const f = docSnap.data();
-            const puedeUsarse = rolActual === 'admin'
-                ? (f.estado !== 'suspendida')
-                : (f.estado === 'programada');
-            if (f.idTorneo === torneoActivoId && puedeUsarse) {
+            if (f.idTorneo === torneoActivoId && f.estado === 'programada') {
                 disponibles.push({ id: docSnap.id, ...f });
             }
         });
 
         disponibles.sort((a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || ""));
 
-        let opciones = '<option value="">-- Seleccioná una fecha del torneo --</option>';
+        let opciones = '<option value="">-- Seleccioná una fecha programada --</option>';
         disponibles.forEach((f) => {
-            const tag = f.estado === 'jugada' ? ' (Jugada)' : '';
-            opciones += `<option value="${escapeHtml(f.id)}">${escapeHtml(f.nombrePartido + tag)}</option>`;
+            opciones += `<option value="${escapeHtml(f.id)}">${escapeHtml(f.nombrePartido)}</option>`;
         });
         select.innerHTML = opciones;
+    }
+
+    async function abrirEditorEquipos(idFecha) {
+        try {
+            const docSnap = await getDoc(doc(db, "fechas", idFecha));
+            if (!docSnap.exists()) return alert("Fecha no encontrada.");
+
+            editorEquiposFechaId = idFecha;
+            editorEquiposFechaData = docSnap.data();
+            editorEquiposAsignacion = new Map();
+            editorEquiposInvitados = [];
+
+            (editorEquiposFechaData.jugadoresAzul || []).forEach(id => {
+                editorEquiposAsignacion.set(id, 'azul');
+                if (id.startsWith('invitado-')) {
+                    editorEquiposInvitados.push(obtenerInfoJugadorPorId(id));
+                }
+            });
+            (editorEquiposFechaData.jugadoresAmarillo || []).forEach(id => {
+                if (!editorEquiposAsignacion.has(id)) {
+                    editorEquiposAsignacion.set(id, 'amarillo');
+                    if (id.startsWith('invitado-')) {
+                        editorEquiposInvitados.push(obtenerInfoJugadorPorId(id));
+                    }
+                }
+            });
+
+            document.getElementById('modal-eq-titulo').textContent = `✏️ Editar Equipos — ${editorEquiposFechaData.nombrePartido}`;
+            const alertaJugada = document.getElementById('modal-eq-alerta-jugada');
+            if (editorEquiposFechaData.estado === 'jugada') {
+                alertaJugada.textContent = `⚠️ Esta fecha ya fue jugada (Azul ${editorEquiposFechaData.golesAzul} - ${editorEquiposFechaData.golesAmarillo} Amarillo). Al guardar los cambios, se recalcularán automáticamente las estadísticas históricas y del torneo de todos los jugadores afectados.`;
+                alertaJugada.classList.remove('hidden');
+            } else {
+                alertaJugada.classList.add('hidden');
+            }
+
+            document.getElementById('modal-nuevo-invitado').value = '';
+            renderizarEditorEquipos();
+            document.getElementById('modal-editar-equipos').classList.remove('hidden');
+        } catch (err) {
+            console.error(err);
+            alert("Error al abrir el editor de equipos: " + traducirErrorFirebase(err));
+        }
+    }
+
+    function cerrarEditorEquipos() {
+        document.getElementById('modal-editar-equipos').classList.add('hidden');
+        editorEquiposFechaId = null;
+        editorEquiposFechaData = null;
+        editorEquiposAsignacion = new Map();
+        editorEquiposInvitados = [];
+    }
+
+    function agregarInvitadoEnEditor(equipo) {
+        const input = document.getElementById('modal-nuevo-invitado');
+        const nombre = input.value.trim();
+        if (!nombre) return alert("Ingresá el nombre del invitado.");
+
+        const idTemp = 'invitado-' + Date.now() + ':' + nombre.slice(0, 40);
+        editorEquiposInvitados.push({
+            id: idTemp,
+            nombre: `${nombre} (Invitado)`,
+            esArquero: false,
+            esInvitado: true,
+            inactivo: false
+        });
+        editorEquiposAsignacion.set(idTemp, equipo);
+        input.value = '';
+        renderizarEditorEquipos();
+    }
+
+    function renderizarEditorEquipos() {
+        const azulIds = [];
+        const amaIds = [];
+        editorEquiposAsignacion.forEach((eq, id) => {
+            if (eq === 'azul') azulIds.push(id);
+            else if (eq === 'amarillo') amaIds.push(id);
+        });
+
+        document.getElementById('modal-count-azul').textContent = azulIds.length;
+        document.getElementById('modal-count-amarillo').textContent = amaIds.length;
+
+        const formatResumen = (ids) => {
+            if (ids.length === 0) return '<span style="color:#888;">Sin jugadores asignados</span>';
+            return ids
+                .map(id => obtenerInfoJugadorPorId(id))
+                .sort((a, b) => Number(b.esArquero) - Number(a.esArquero) || a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+                .map(j => `${j.esArquero ? '🧤' : (j.esInvitado ? '👤' : '⚽')} ${escapeHtml(j.nombre)}`)
+                .join('<br>');
+        };
+
+        document.getElementById('modal-resumen-azul').innerHTML = formatResumen(azulIds);
+        document.getElementById('modal-resumen-amarillo').innerHTML = formatResumen(amaIds);
+
+        const listaEl = document.getElementById('modal-lista-jugadores');
+        listaEl.innerHTML = '';
+
+        const mapaUnico = new Map();
+        padronJugadores.forEach(j => {
+            mapaUnico.set(j.id, {
+                id: j.id,
+                nombre: j.nombre,
+                esArquero: !!j.esArquero,
+                esInvitado: false,
+                inactivo: j.activo === false
+            });
+        });
+        editorEquiposInvitados.forEach(inv => {
+            mapaUnico.set(inv.id, inv);
+        });
+        editorEquiposAsignacion.forEach((_, id) => {
+            if (!mapaUnico.has(id)) {
+                mapaUnico.set(id, obtenerInfoJugadorPorId(id));
+            }
+        });
+
+        const ordenados = Array.from(mapaUnico.values()).sort((a, b) =>
+            a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+        );
+
+        ordenados.forEach(j => {
+            const actual = editorEquiposAsignacion.get(j.id) || 'none';
+            const row = document.createElement('div');
+            row.className = 'editor-player-row';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.style.fontSize = '13px';
+            const icon = j.esArquero ? '🧤' : (j.esInvitado ? '👤' : '⚽');
+            const inact = j.inactivo ? ' <small style="color:#c62828;">[Inactivo]</small>' : '';
+            nameSpan.innerHTML = `${icon} <b>${escapeHtml(j.nombre)}</b>${inact}`;
+
+            const grp = document.createElement('div');
+            grp.className = 'pill-group';
+
+            const btnAzul = document.createElement('button');
+            btnAzul.type = 'button';
+            btnAzul.className = 'pill-btn' + (actual === 'azul' ? ' sel-azul' : '');
+            btnAzul.textContent = '🔵 Azul';
+            btnAzul.addEventListener('click', () => {
+                editorEquiposAsignacion.set(j.id, 'azul');
+                renderizarEditorEquipos();
+            });
+
+            const btnAma = document.createElement('button');
+            btnAma.type = 'button';
+            btnAma.className = 'pill-btn' + (actual === 'amarillo' ? ' sel-amarillo' : '');
+            btnAma.textContent = '🟡 Amarillo';
+            btnAma.addEventListener('click', () => {
+                editorEquiposAsignacion.set(j.id, 'amarillo');
+                renderizarEditorEquipos();
+            });
+
+            const btnNone = document.createElement('button');
+            btnNone.type = 'button';
+            btnNone.className = 'pill-btn' + (actual === 'none' ? ' sel-none' : '');
+            btnNone.textContent = '✖';
+            btnNone.title = 'No juega esta fecha';
+            btnNone.addEventListener('click', () => {
+                editorEquiposAsignacion.delete(j.id);
+                renderizarEditorEquipos();
+            });
+
+            grp.append(btnAzul, btnAma, btnNone);
+            row.append(nameSpan, grp);
+            listaEl.appendChild(row);
+        });
+    }
+
+    async function guardarCambiosEquiposFecha() {
+        if (!editorEquiposFechaId) return;
+
+        const nuevosAzul = [];
+        const nuevosAmarillo = [];
+        editorEquiposAsignacion.forEach((eq, id) => {
+            if (eq === 'azul') nuevosAzul.push(id);
+            else if (eq === 'amarillo') nuevosAmarillo.push(id);
+        });
+
+        if (nuevosAzul.length === 0 || nuevosAmarillo.length === 0) {
+            return alert("Cada equipo debe tener al menos 1 jugador asignado.");
+        }
+        if (nuevosAzul.length > 30 || nuevosAmarillo.length > 30) {
+            return alert("Cada equipo puede tener como máximo 30 jugadores.");
+        }
+
+        const btn = document.getElementById('btn-guardar-modal-eq');
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+
+        try {
+            const fechaRef = doc(db, "fechas", editorEquiposFechaId);
+            const freshFechaSnap = await getDoc(fechaRef);
+            if (!freshFechaSnap.exists()) return alert("La fecha ya no existe.");
+            const freshFecha = freshFechaSnap.data();
+
+            const yaJugada = freshFecha.estado === 'jugada' &&
+                typeof freshFecha.golesAzul === 'number' &&
+                typeof freshFecha.golesAmarillo === 'number';
+
+            // Recargamos jugadores frescos antes de calcular deltas para evitar desfasajes
+            await cargarJugadores();
+
+            await updateDoc(fechaRef, {
+                jugadoresAzul: nuevosAzul,
+                jugadoresAmarillo: nuevosAmarillo
+            });
+
+            if (yaJugada && datosTorneoActivo) {
+                const gAzul = freshFecha.golesAzul;
+                const gAmarillo = freshFecha.golesAmarillo;
+                const ptsAzul = calcularPuntosEquipo(gAzul, gAmarillo, datosTorneoActivo);
+                const ptsAmarillo = calcularPuntosEquipo(gAmarillo, gAzul, datosTorneoActivo);
+                const difAzul = gAzul - gAmarillo;
+                const difAmarillo = gAmarillo - gAzul;
+
+                const oldAzulSet = new Set(freshFecha.jugadoresAzul || []);
+                const oldAmaSet = new Set(freshFecha.jugadoresAmarillo || []);
+                const newAzulSet = new Set(nuevosAzul);
+                const newAmaSet = new Set(nuevosAmarillo);
+
+                const involucrados = new Set([...oldAzulSet, ...oldAmaSet, ...newAzulSet, ...newAmaSet]);
+                const promesas = [];
+
+                involucrados.forEach(idJ => {
+                    if (idJ.startsWith('invitado-')) return;
+                    const jugadorObj = padronJugadores.find(j => j.id === idJ);
+                    if (!jugadorObj) return;
+
+                    let oldPts = 0, oldDif = 0, oldPJ = 0;
+                    if (oldAzulSet.has(idJ)) { oldPts = ptsAzul; oldDif = difAzul; oldPJ = 1; }
+                    else if (oldAmaSet.has(idJ)) { oldPts = ptsAmarillo; oldDif = difAmarillo; oldPJ = 1; }
+
+                    let newPts = 0, newDif = 0, newPJ = 0;
+                    if (newAzulSet.has(idJ)) { newPts = ptsAzul; newDif = difAzul; newPJ = 1; }
+                    else if (newAmaSet.has(idJ)) { newPts = ptsAmarillo; newDif = difAmarillo; newPJ = 1; }
+
+                    const dPts = newPts - oldPts;
+                    const dDif = newDif - oldDif;
+                    const dPJ = newPJ - oldPJ;
+
+                    if (dPts !== 0 || dDif !== 0 || dPJ !== 0) {
+                        promesas.push(
+                            updateDoc(doc(db, "jugadores", idJ), {
+                                puntosHistoricos: (jugadorObj.puntosHistoricos || 0) + dPts,
+                                golesDiferenciaHistorico: (jugadorObj.golesDiferenciaHistorico || 0) + dDif,
+                                partidosJugados: Math.max(0, Math.round((jugadorObj.partidosJugados || 0) + dPJ))
+                            })
+                        );
+                    }
+                });
+
+                if (promesas.length > 0) {
+                    await Promise.all(promesas);
+                }
+            }
+
+            cerrarEditorEquipos();
+            await cargarFechasAdmin();
+            await cargarFechasSelectPartido();
+            await cargarJugadores();
+            await calcularTablasPosiciones();
+            alert(yaJugada
+                ? "¡Equipos actualizados y estadísticas del torneo e históricas recalculadas con éxito!"
+                : "¡Equipos de la fecha actualizados con éxito!"
+            );
+        } catch (err) {
+            console.error(err);
+            alert("Error al guardar los cambios en los equipos: " + traducirErrorFirebase(err));
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Guardar Cambios en Equipos";
+        }
     }
 
     function calcularPuntosEquipo(golesPropios, golesRivales, torneo) {
@@ -1123,6 +1512,7 @@
             await updateDoc(doc(db, "fechas", idFecha), { estado: nuevoEstado });
             await cargarFechasAdmin();
             await cargarFechasSelectPartido();
+            await calcularTablasPosiciones();
         } catch (err) {
             console.error(err);
             alert("Error al cambiar el estado de la fecha: " + traducirErrorFirebase(err));
@@ -1136,6 +1526,7 @@
                 await updateDoc(doc(db, "fechas", idFecha), { nombrePartido: nuevoNombre.trim().slice(0, 150) });
                 await cargarFechasAdmin();
                 await cargarFechasSelectPartido();
+                await calcularTablasPosiciones();
             } catch (err) {
                 console.error(err);
                 alert("Error al editar el nombre de la fecha: " + traducirErrorFirebase(err));
@@ -1249,7 +1640,7 @@
         const esArquero = document.getElementById('arquero-invitado').value === 'true';
         if (!nombre) return alert("Ingresá el nombre del invitado.");
 
-        const idTemp = 'invitado-' + Date.now();
+        const idTemp = 'invitado-' + Date.now() + ':' + nombre.slice(0, 40);
         invitadosTemporales.push({
             id: idTemp,
             nombre: nombre + " (Invitado)",
@@ -1459,6 +1850,10 @@
             if (metodo === 'aleatorio') {
                 ultimoArmadoAleatorio = Date.now();
             }
+            if (rolActual === 'admin') {
+                await cargarFechasAdmin();
+            }
+            await calcularTablasPosiciones();
             alert("¡Equipos armados y guardados en la fecha seleccionada con éxito!");
         } catch (err) {
             console.error(err);
@@ -1499,13 +1894,16 @@
         }
 
         const contenedorTorneo = document.getElementById('contenedor-tabla-torneo');
+        const contenedorFechasPub = document.getElementById('contenedor-fechas-publicas');
         if (!torneoActivoId || !datosTorneoActivo) {
             contenedorTorneo.innerHTML = "<p>No hay ningún torneo activo en este momento.</p>";
+            contenedorFechasPub.innerHTML = "<p>No hay ningún torneo activo en este momento.</p>";
             return;
         }
 
         const querySnapshot = await getDocs(collection(db, "fechas"));
         const estadisticasTorneo = {};
+        const fechasDelTorneo = [];
 
         padronJugadores.forEach(j => {
             estadisticasTorneo[j.id] = { nombre: j.nombre, esArquero: j.esArquero, pj: 0, pts: 0, dg: 0, g: 0, e: 0, p: 0 };
@@ -1514,6 +1912,9 @@
         let hayPartidosJugados = false;
         querySnapshot.forEach((docSnap) => {
             const f = docSnap.data();
+            if (f.idTorneo === torneoActivoId) {
+                fechasDelTorneo.push({ id: docSnap.id, ...f });
+            }
             if (f.idTorneo === torneoActivoId && f.estado === 'jugada') {
                 hayPartidosJugados = true;
                 const gAzul = f.golesAzul;
@@ -1550,6 +1951,8 @@
             }
         });
 
+        renderizarFechasPublicas(fechasDelTorneo);
+
         if (!hayPartidosJugados) {
             contenedorTorneo.innerHTML = "<p>Aún no hay partidos jugados cargados en este torneo.</p>";
             return;
@@ -1579,20 +1982,91 @@
         contenedorTorneo.innerHTML = htmlT;
     }
 
+    function renderizarFechasPublicas(fechasDelTorneo) {
+        const contenedor = document.getElementById('contenedor-fechas-publicas');
+        if (!fechasDelTorneo || fechasDelTorneo.length === 0) {
+            contenedor.innerHTML = "<p>Aún no hay fechas cargadas en este torneo.</p>";
+            return;
+        }
+
+        const ordenadas = [...fechasDelTorneo].sort(
+            (a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || "") || (a.numeroOrden || 0) - (b.numeroOrden || 0)
+        );
+
+        const renderListaEquipo = (ids) => {
+            if (!Array.isArray(ids) || ids.length === 0) {
+                return '<div style="color:#888; font-style:italic;">Sin jugadores</div>';
+            }
+            const items = ids
+                .map(id => obtenerInfoJugadorPorId(id))
+                .sort((a, b) => Number(b.esArquero) - Number(a.esArquero) || a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+                .map(j => {
+                    const icono = j.esArquero ? '🧤' : (j.esInvitado ? '👤' : '⚽');
+                    return `<li>${icono} ${escapeHtml(j.nombre)}</li>`;
+                })
+                .join('');
+            return `<ul>${items}</ul>`;
+        };
+
+        contenedor.innerHTML = ordenadas.map(f => {
+            const cantAzul = Array.isArray(f.jugadoresAzul) ? f.jugadoresAzul.length : 0;
+            const cantAma = Array.isArray(f.jugadoresAmarillo) ? f.jugadoresAmarillo.length : 0;
+            const tieneEquipos = cantAzul > 0 || cantAma > 0;
+
+            let badgeHTML = '';
+            if (f.estado === 'jugada') {
+                badgeHTML = `<span class="marcador-badge marcador-jugada">🔵 Azul ${f.golesAzul} - ${f.golesAmarillo} Amarillo 🟡</span>`;
+            } else if (f.estado === 'suspendida') {
+                badgeHTML = `<span class="marcador-badge marcador-suspendida">⛔ Suspendida</span>`;
+            } else {
+                badgeHTML = `<span class="marcador-badge marcador-programada">${tieneEquipos ? '📋 Equipos confirmados' : '⏳ Programada'}</span>`;
+            }
+
+            const cuerpoEquipos = tieneEquipos
+                ? `<div class="equipos-resumen-grid">
+                        <div class="equipo-mini equipo-mini-azul">
+                            <div class="equipo-mini-titulo" style="color: var(--azul);">🔵 Equipo Azul (${cantAzul})</div>
+                            ${renderListaEquipo(f.jugadoresAzul)}
+                        </div>
+                        <div class="equipo-mini equipo-mini-amarillo">
+                            <div class="equipo-mini-titulo" style="color: #b28704;">🟡 Equipo Amarillo (${cantAma})</div>
+                            ${renderListaEquipo(f.jugadoresAmarillo)}
+                        </div>
+                   </div>`
+                : `<p style="margin: 0; font-size: 12px; color: #777;">Equipos aún no confirmados para esta fecha.</p>`;
+
+            return `<div class="fecha-publica-card">
+                <div class="fecha-publica-header">
+                    <div>
+                        <b>${escapeHtml(f.nombrePartido)}</b><br>
+                        <small style="color:#666;">📅 ${escapeHtml(formatearFechaAR(f.fechaCalendario) || 'Sin fecha')}</small>
+                    </div>
+                    ${badgeHTML}
+                </div>
+                ${cuerpoEquipos}
+            </div>`;
+        }).join('');
+    }
+
     // 6. EVENT LISTENERS
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             const tabName = btn.getAttribute('data-tab');
-            if (tabName === 'torneo') {
-                document.getElementById('tab-torneo').classList.remove('hidden');
-                document.getElementById('tab-historico').classList.add('hidden');
-            } else {
-                document.getElementById('tab-torneo').classList.add('hidden');
-                document.getElementById('tab-historico').classList.remove('hidden');
-            }
+            document.getElementById('tab-torneo').classList.toggle('hidden', tabName !== 'torneo');
+            document.getElementById('tab-fechas').classList.toggle('hidden', tabName !== 'fechas');
+            document.getElementById('tab-historico').classList.toggle('hidden', tabName !== 'historico');
         });
+    });
+
+    document.getElementById('btn-cerrar-modal-eq').addEventListener('click', cerrarEditorEquipos);
+    document.getElementById('btn-cancelar-modal-eq').addEventListener('click', cerrarEditorEquipos);
+    document.getElementById('btn-guardar-modal-eq').addEventListener('click', guardarCambiosEquiposFecha);
+    document.getElementById('btn-modal-inv-azul').addEventListener('click', () => agregarInvitadoEnEditor('azul'));
+    document.getElementById('btn-modal-inv-amarillo').addEventListener('click', () => agregarInvitadoEnEditor('amarillo'));
+    document.getElementById('modal-editar-equipos').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-editar-equipos') cerrarEditorEquipos();
     });
 
     document.getElementById('btn-toggle-ayuda').addEventListener('click', () => {
