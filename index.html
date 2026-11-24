@@ -126,7 +126,7 @@
             <li><b>Armar Equipos:</b> Seleccioná la fecha programada en el menú desplegable, marcá los jugadores presentes (podés sumar invitados temporales que no alteran el historial), elegí <i>Hándicap</i> o <i>Aleatorio</i> y tocá <b>Generar y Guardar Equipos</b>.</li>
             <li><b>Reglas de Hándicap:</b> Equilibra el promedio histórico (<code>Puntos / PJ</code>) y diferencia de gol. Si hay un solo arquero, se compensa al equipo rival con jugadores de campo de mayor nivel.</li>
             <li><b>Armado Aleatorio:</b> Distribuye jugadores al azar repartiendo los arqueros de forma equitativa entre ambos equipos (si son pares, misma cantidad en cada uno; nunca todos juntos). Por reglas del grupo, solo permite sortear una vez cada 2 minutos.</li>
-            <li><b>Fechas y Equipos:</b> En la pestaña <i>Fechas y Equipos</i> cualquier usuario puede consultar los resultados de cada partido y cómo estuvieron conformados ambos equipos.</li>
+            <li><b>Fechas y Equipos:</b> En las pestañas <i>Tabla por Torneo</i> y <i>Fechas y Equipos</i> cualquier usuario puede elegir el torneo activo o cualquier torneo finalizado para consultar posiciones, resultados y conformación de equipos.</li>
             <li><b>Suplentes:</b> Todos los convocados del equipo (titulares y suplentes) suman los mismos puntos y diferencia de gol.</li>
         </ul>
         <div id="ayuda-admin-extra" class="hidden">
@@ -250,6 +250,12 @@
         <button id="btn-guardar-lote" style="background-color: #2e7d32;">Guardar Lote de Fechas en el Torneo</button>
 
         <h4 style="margin-top: 20px;">Fechas Registradas y Carga de Resultados</h4>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label for="select-torneo-admin">Torneo a gestionar (podés revisar o corregir torneos finalizados)</label>
+            <select id="select-torneo-admin" style="margin-bottom: 0;">
+                <option value="">Cargando torneos...</option>
+            </select>
+        </div>
         <div id="lista-fechas-admin" style="margin-top: 10px;"></div>
 
         <hr style="border: 0; border-top: 1px solid #ffcc80; margin: 15px 0;">
@@ -336,13 +342,20 @@
     <h3>📊 Tablas de Posiciones y Estadísticas</h3>
 
     <div class="tabs">
-        <button class="tab-btn active" data-tab="torneo">Torneo Actual</button>
+        <button class="tab-btn active" data-tab="torneo">Tabla por Torneo</button>
         <button class="tab-btn" data-tab="fechas">Fechas y Equipos</button>
         <button class="tab-btn" data-tab="historico">Histórico General</button>
     </div>
 
+    <div id="barra-selector-torneo-vista" class="form-group" style="margin-bottom: 12px;">
+        <label for="select-torneo-vista">Seleccionar Torneo a consultar:</label>
+        <select id="select-torneo-vista" style="margin-bottom: 0;">
+            <option value="">Cargando torneos...</option>
+        </select>
+    </div>
+
     <div id="tab-torneo">
-        <h4 id="titulo-tabla-torneo">Tabla de Posiciones (Torneo Activo)</h4>
+        <h4 id="titulo-tabla-torneo">Tabla de Posiciones</h4>
         <div id="contenedor-tabla-torneo">Cargando posiciones...</div>
     </div>
 
@@ -436,9 +449,13 @@
     let padronJugadores = [];
     let invitadosTemporales = [];
     let ultimoArmadoAleatorio = 0;
+    let listaTorneos = [];
+    let torneosPorId = new Map();
     let torneoActivoId = null;
     let nombreTorneoActivo = "";
     let datosTorneoActivo = null;
+    let torneoAdminSeleccionadoId = null;
+    let torneoVistaSeleccionadoId = null;
     let countFechasExistentesTorneo = 0;
     let fechasLoteTemporal = [];
     let equipoAzulActual = [];
@@ -668,14 +685,11 @@
                 estado: "activo"
             });
 
-            torneoActivoId = docRef.id;
-            nombreTorneoActivo = nombre;
-            datosTorneoActivo = { nombre, ptsGanado, ptsEmpate, ptsPerdido, estado: "activo" };
-            actualizarBannerTorneo();
+            torneoAdminSeleccionadoId = docRef.id;
+            torneoVistaSeleccionadoId = docRef.id;
             alert("¡Torneo creado con éxito y establecido como activo!");
             document.getElementById('torneo-nombre').value = '';
-            await cargarFechasAdmin();
-            await cargarFechasSelectPartido();
+            await cargarTorneoActivo();
             await calcularTablasPosiciones();
         } catch (err) {
             console.error(err);
@@ -683,32 +697,88 @@
         }
     }
 
+    async function obtenerTorneoParaFecha(idTorneo) {
+        if (!idTorneo) return null;
+        if (torneosPorId.has(idTorneo)) return torneosPorId.get(idTorneo);
+        const snap = await getDoc(doc(db, "torneos", idTorneo));
+        if (!snap.exists()) return null;
+        const torneo = { id: snap.id, ...snap.data() };
+        torneosPorId.set(torneo.id, torneo);
+        return torneo;
+    }
+
+    function poblarSelectoresTorneos() {
+        const selectVista = document.getElementById('select-torneo-vista');
+        const selectAdmin = document.getElementById('select-torneo-admin');
+
+        if (listaTorneos.length === 0) {
+            const vacioHTML = '<option value="">-- No hay torneos creados --</option>';
+            if (selectVista) selectVista.innerHTML = vacioHTML;
+            if (selectAdmin) selectAdmin.innerHTML = vacioHTML;
+            torneoVistaSeleccionadoId = null;
+            torneoAdminSeleccionadoId = null;
+            return;
+        }
+
+        if (!torneoVistaSeleccionadoId || !torneosPorId.has(torneoVistaSeleccionadoId)) {
+            torneoVistaSeleccionadoId = torneoActivoId || listaTorneos[0].id;
+        }
+        if (!torneoAdminSeleccionadoId || !torneosPorId.has(torneoAdminSeleccionadoId)) {
+            torneoAdminSeleccionadoId = torneoActivoId || listaTorneos[0].id;
+        }
+
+        const opcionesHTML = listaTorneos.map(t => {
+            const etiquetaEstado = t.estado === 'activo' ? 'Activo' : 'Finalizado';
+            return `<option value="${escapeHtml(t.id)}">${escapeHtml(t.nombre)} (${etiquetaEstado})</option>`;
+        }).join('');
+
+        if (selectVista) {
+            selectVista.innerHTML = opcionesHTML;
+            selectVista.value = torneoVistaSeleccionadoId;
+        }
+        if (selectAdmin) {
+            selectAdmin.innerHTML = opcionesHTML;
+            selectAdmin.value = torneoAdminSeleccionadoId;
+        }
+    }
+
     async function cargarTorneoActivo() {
         const querySnapshot = await getDocs(collection(db, "torneos"));
+        listaTorneos = [];
+        torneosPorId = new Map();
         torneoActivoId = null;
         nombreTorneoActivo = "Ninguno (Creá uno abajo)";
         datosTorneoActivo = null;
 
         querySnapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (data.estado === "activo") {
-                torneoActivoId = docSnap.id;
-                nombreTorneoActivo = data.nombre;
-                datosTorneoActivo = data;
+            const torneo = { id: docSnap.id, ...docSnap.data() };
+            listaTorneos.push(torneo);
+            torneosPorId.set(torneo.id, torneo);
+            if (torneo.estado === "activo") {
+                torneoActivoId = torneo.id;
+                nombreTorneoActivo = torneo.nombre;
+                datosTorneoActivo = torneo;
             }
         });
 
+        // Ordenar: torneo activo primero, luego finalizados alfabéticamente
+        listaTorneos.sort((a, b) => {
+            if (a.estado === 'activo' && b.estado !== 'activo') return -1;
+            if (b.estado === 'activo' && a.estado !== 'activo') return 1;
+            return (a.nombre || "").localeCompare(b.nombre || "", 'es', { sensitivity: 'base' });
+        });
+
+        poblarSelectoresTorneos();
         actualizarBannerTorneo();
+
+        if (!adminTools.classList.contains('hidden')) {
+            await cargarFechasAdmin();
+        }
         if (torneoActivoId) {
-            if (!adminTools.classList.contains('hidden')) {
-                await cargarFechasAdmin();
-            }
             await cargarFechasSelectPartido();
         } else {
             countFechasExistentesTorneo = 0;
             document.getElementById('select-fecha-partido').innerHTML = '<option value="">-- No hay torneo activo --</option>';
-            const listaAdmin = document.getElementById('lista-fechas-admin');
-            if (listaAdmin) listaAdmin.innerHTML = "<p style='font-size:12px; color:#666;'>Creá un torneo activo para gestionar fechas.</p>";
         }
     }
 
@@ -748,13 +818,22 @@
         if (banner) {
             banner.innerText = `Torneo Activo: ${nombreTorneoActivo}`;
         }
+        actualizarTitulosVistaTorneo();
+    }
+
+    function actualizarTitulosVistaTorneo() {
+        const torneoVista = torneoVistaSeleccionadoId ? torneosPorId.get(torneoVistaSeleccionadoId) : null;
+        const etiquetaVista = torneoVista
+            ? `${torneoVista.nombre} (${torneoVista.estado === 'activo' ? 'Activo' : 'Finalizado'})`
+            : 'Sin torneos';
+
         const tituloTorneoTab = document.getElementById('titulo-tabla-torneo');
         if (tituloTorneoTab) {
-            tituloTorneoTab.innerText = `Tabla de Posiciones (${nombreTorneoActivo})`;
+            tituloTorneoTab.innerText = `Tabla de Posiciones — ${etiquetaVista}`;
         }
         const tituloFechasTab = document.getElementById('titulo-fechas-publicas');
         if (tituloFechasTab) {
-            tituloFechasTab.innerText = `Resultados y Equipos (${nombreTorneoActivo})`;
+            tituloFechasTab.innerText = `Resultados y Equipos — ${etiquetaVista}`;
         }
     }
 
@@ -1033,21 +1112,30 @@
     }
 
     async function cargarFechasAdmin() {
-        if (!torneoActivoId) return;
         const contenedor = document.getElementById('lista-fechas-admin');
+        const idTorneoObjetivo = torneoAdminSeleccionadoId || torneoActivoId;
+        if (!idTorneoObjetivo) {
+            countFechasExistentesTorneo = 0;
+            contenedor.innerHTML = "<p style='font-size:12px; color:#666;'>Creá un torneo activo para gestionar fechas.</p>";
+            return;
+        }
         contenedor.innerHTML = "Cargando fechas...";
 
         const querySnapshot = await getDocs(collection(db, "fechas"));
         const fechasList = [];
+        let countActivo = 0;
         querySnapshot.forEach((docSnap) => {
             const f = docSnap.data();
-            if (f.idTorneo === torneoActivoId) {
+            if (torneoActivoId && f.idTorneo === torneoActivoId) {
+                countActivo++;
+            }
+            if (f.idTorneo === idTorneoObjetivo) {
                 fechasList.push({ id: docSnap.id, ...f });
             }
         });
 
         fechasList.sort((a, b) => (a.fechaCalendario || "").localeCompare(b.fechaCalendario || ""));
-        countFechasExistentesTorneo = fechasList.length;
+        countFechasExistentesTorneo = countActivo;
         if (fechasLoteTemporal.length > 0) actualizarPreviewLote();
 
         contenedor.innerHTML = '';
@@ -1321,6 +1409,11 @@
                 typeof freshFecha.golesAzul === 'number' &&
                 typeof freshFecha.golesAmarillo === 'number';
 
+            const torneoDeFecha = yaJugada ? await obtenerTorneoParaFecha(freshFecha.idTorneo) : null;
+            if (yaJugada && !torneoDeFecha) {
+                return alert("No se encontró el torneo asociado a esta fecha para recalcular las estadísticas.");
+            }
+
             // Recargamos jugadores frescos antes de calcular deltas para evitar desfasajes
             await cargarJugadores();
 
@@ -1329,11 +1422,11 @@
                 jugadoresAmarillo: nuevosAmarillo
             });
 
-            if (yaJugada && datosTorneoActivo) {
+            if (yaJugada && torneoDeFecha) {
                 const gAzul = freshFecha.golesAzul;
                 const gAmarillo = freshFecha.golesAmarillo;
-                const ptsAzul = calcularPuntosEquipo(gAzul, gAmarillo, datosTorneoActivo);
-                const ptsAmarillo = calcularPuntosEquipo(gAmarillo, gAzul, datosTorneoActivo);
+                const ptsAzul = calcularPuntosEquipo(gAzul, gAmarillo, torneoDeFecha);
+                const ptsAmarillo = calcularPuntosEquipo(gAmarillo, gAzul, torneoDeFecha);
                 const difAzul = gAzul - gAmarillo;
                 const difAmarillo = gAmarillo - gAzul;
 
@@ -1437,14 +1530,21 @@
                 return alert("Los goles deben ser números enteros entre 0 y 100.");
             }
 
+            const torneoDeFecha = await obtenerTorneoParaFecha(fechaData.idTorneo);
+            if (!torneoDeFecha) {
+                return alert("No se encontró el torneo asociado a esta fecha para calcular los puntos.");
+            }
+
+            await cargarJugadores();
+
             await updateDoc(docRef, {
                 golesAzul: gAzul,
                 golesAmarillo: gAmarillo,
                 estado: "jugada"
             });
 
-            const ptsAzulNuevo = calcularPuntosEquipo(gAzul, gAmarillo, datosTorneoActivo);
-            const ptsAmarilloNuevo = calcularPuntosEquipo(gAmarillo, gAzul, datosTorneoActivo);
+            const ptsAzulNuevo = calcularPuntosEquipo(gAzul, gAmarillo, torneoDeFecha);
+            const ptsAmarilloNuevo = calcularPuntosEquipo(gAmarillo, gAzul, torneoDeFecha);
             const difAzulNueva = gAzul - gAmarillo;
             const difAmarilloNueva = gAmarillo - gAzul;
 
@@ -1455,8 +1555,8 @@
             let deltaPartidos = 1;
 
             if (yaJugada) {
-                const ptsAzulViejo = calcularPuntosEquipo(fechaData.golesAzul, fechaData.golesAmarillo, datosTorneoActivo);
-                const ptsAmarilloViejo = calcularPuntosEquipo(fechaData.golesAmarillo, fechaData.golesAzul, datosTorneoActivo);
+                const ptsAzulViejo = calcularPuntosEquipo(fechaData.golesAzul, fechaData.golesAmarillo, torneoDeFecha);
+                const ptsAmarilloViejo = calcularPuntosEquipo(fechaData.golesAmarillo, fechaData.golesAzul, torneoDeFecha);
                 const difAzulVieja = fechaData.golesAzul - fechaData.golesAmarillo;
                 const difAmarilloVieja = fechaData.golesAmarillo - fechaData.golesAzul;
 
@@ -1893,11 +1993,16 @@
             contenedorHistorico.innerHTML = htmlH;
         }
 
+        actualizarTitulosVistaTorneo();
+
         const contenedorTorneo = document.getElementById('contenedor-tabla-torneo');
         const contenedorFechasPub = document.getElementById('contenedor-fechas-publicas');
-        if (!torneoActivoId || !datosTorneoActivo) {
-            contenedorTorneo.innerHTML = "<p>No hay ningún torneo activo en este momento.</p>";
-            contenedorFechasPub.innerHTML = "<p>No hay ningún torneo activo en este momento.</p>";
+        const idTorneoVista = torneoVistaSeleccionadoId || torneoActivoId;
+        const datosTorneoVista = idTorneoVista ? torneosPorId.get(idTorneoVista) : null;
+
+        if (!idTorneoVista || !datosTorneoVista) {
+            contenedorTorneo.innerHTML = "<p>No hay ningún torneo registrado todavía.</p>";
+            contenedorFechasPub.innerHTML = "<p>No hay ningún torneo registrado todavía.</p>";
             return;
         }
 
@@ -1912,16 +2017,16 @@
         let hayPartidosJugados = false;
         querySnapshot.forEach((docSnap) => {
             const f = docSnap.data();
-            if (f.idTorneo === torneoActivoId) {
+            if (f.idTorneo === idTorneoVista) {
                 fechasDelTorneo.push({ id: docSnap.id, ...f });
             }
-            if (f.idTorneo === torneoActivoId && f.estado === 'jugada') {
+            if (f.idTorneo === idTorneoVista && f.estado === 'jugada') {
                 hayPartidosJugados = true;
                 const gAzul = f.golesAzul;
                 const gAmarillo = f.golesAmarillo;
 
-                const ptsAzul = calcularPuntosEquipo(gAzul, gAmarillo, datosTorneoActivo);
-                const ptsAmarillo = calcularPuntosEquipo(gAmarillo, gAzul, datosTorneoActivo);
+                const ptsAzul = calcularPuntosEquipo(gAzul, gAmarillo, datosTorneoVista);
+                const ptsAmarillo = calcularPuntosEquipo(gAmarillo, gAzul, datosTorneoVista);
                 const resAzul = gAzul > gAmarillo ? 'g' : (gAzul < gAmarillo ? 'p' : 'e');
                 const resAmarillo = gAmarillo > gAzul ? 'g' : (gAmarillo < gAzul ? 'p' : 'e');
                 const difAzul = gAzul - gAmarillo;
@@ -1958,7 +2063,11 @@
             return;
         }
 
-        const torneoOrdenado = Object.values(estadisticasTorneo).sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.g - a.g);
+        let listaTablaTorneo = Object.values(estadisticasTorneo);
+        if (datosTorneoVista.estado === 'finalizado') {
+            listaTablaTorneo = listaTablaTorneo.filter(j => j.pj > 0);
+        }
+        const torneoOrdenado = listaTablaTorneo.sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.g - a.g);
 
         let htmlT = `<div class="table-wrap"><table>
             <thead>
@@ -2057,7 +2166,18 @@
             document.getElementById('tab-torneo').classList.toggle('hidden', tabName !== 'torneo');
             document.getElementById('tab-fechas').classList.toggle('hidden', tabName !== 'fechas');
             document.getElementById('tab-historico').classList.toggle('hidden', tabName !== 'historico');
+            document.getElementById('barra-selector-torneo-vista').classList.toggle('hidden', tabName === 'historico');
         });
+    });
+
+    document.getElementById('select-torneo-vista').addEventListener('change', async (e) => {
+        torneoVistaSeleccionadoId = e.target.value || null;
+        await calcularTablasPosiciones();
+    });
+
+    document.getElementById('select-torneo-admin').addEventListener('change', async (e) => {
+        torneoAdminSeleccionadoId = e.target.value || null;
+        await cargarFechasAdmin();
     });
 
     document.getElementById('btn-cerrar-modal-eq').addEventListener('click', cerrarEditorEquipos);
@@ -2091,6 +2211,9 @@
     document.getElementById('btn-armar').addEventListener('click', armarYGuardarEquipos);
     document.getElementById('btn-logout').addEventListener('click', async () => {
         invitadosTemporales = [];
+        fechasLoteTemporal = [];
+        torneoAdminSeleccionadoId = null;
+        torneoVistaSeleccionadoId = null;
         document.getElementById('input-pass').value = '';
         await signOut(auth);
     });
